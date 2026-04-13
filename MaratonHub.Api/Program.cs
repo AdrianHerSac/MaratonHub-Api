@@ -1,8 +1,6 @@
 using MongoDB.Driver;
-using MongoDB.Driver.Core.Configuration;
 using MaratonHub.Api.TheMovieDB.Services;
 using MaratonHub.Api.UserMedia;
-using MaratonHub.Api.Reviews;
 using System.Security.Authentication;
 using MaratonHub.Api.Reviews.Reposytory;
 using MaratonHub.Api.TheMovieDB.Repository;
@@ -10,18 +8,29 @@ using MaratonHub.Api.Workers;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// --- 1. CONFIGURACIÓN DE CORS (Antes de Build) ---
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("OpenPolicy", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 
-// --- CONFIGURACIÓN DE MONGODB ATLAS ---
+// --- 2. CONFIGURACIÓN DE MONGODB ATLAS ---
 var mongoSettings = builder.Configuration.GetSection("MongoDbSettings");
 
 builder.Services.AddSingleton<IMongoClient>(sp => 
 {
-    var connectionString = mongoSettings["ConnectionString"]!;
+    // Render usará la Variable de Entorno que pusimos; en local usará appsettings
+    var connectionString = builder.Configuration["MongoDbSettings__ConnectionString"] 
+                           ?? mongoSettings["ConnectionString"]!;
+    
     var mongoUrl = new MongoUrl(connectionString);
     var clientSettings = MongoClientSettings.FromUrl(mongoUrl);
 
-    // Fix Win32Exception 0x80090304 en Windows:
-    clientSettings.AllowInsecureTls = true;
     clientSettings.SslSettings = new SslSettings
     {
         EnabledSslProtocols = SslProtocols.Tls12,
@@ -34,45 +43,37 @@ builder.Services.AddSingleton<IMongoClient>(sp =>
 builder.Services.AddScoped(sp => 
 {
     var client = sp.GetRequiredService<IMongoClient>();
-    return client.GetDatabase(mongoSettings["DatabaseName"]);
+    var dbName = builder.Configuration["MongoDbSettings__DatabaseName"] 
+                 ?? mongoSettings["DatabaseName"] 
+                 ?? "MaratonHub";
+    return client.GetDatabase(dbName);
 });
 
+// --- 3. REGISTRO DE SERVICIOS (Dependency Injection) ---
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAngular", policy =>
-    {
-        policy.WithOrigins("http://localhost:4200")
-            .AllowAnyMethod()
-            .AllowAnyHeader();
-    });
-});
-
 builder.Services.AddScoped<ITheMovieDBService, TheMovieDBService>();
 builder.Services.AddScoped<IMediaCacheRepository, MediaCacheRepository>();
-
 builder.Services.AddScoped<IMediaService, MediaService>();
 builder.Services.AddScoped<IMediaRepository, MediaRepository>();
-
 builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
 
+// Worker de Sincronización
 builder.Services.AddHostedService<TmdbCacheSyncWorker>();
 
 var app = builder.Build();
 
+// Swagger / OpenAPI
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
-
-app.UseCors("AllowAngular");
+// IMPORTANTE: UseCors debe ir después de UseRouting (implícito) y antes de MapControllers
+app.UseCors("OpenPolicy");
 
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
