@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="compose.yaml" />
+  </Folder>
+  <Project Path="MaratonHub.Api/MaratonHub.Api.csproj" />
+  <Project Path="MaratonHub.ApiTest/MaratonHub.ApiTest.csproj" />
+</Solution>
