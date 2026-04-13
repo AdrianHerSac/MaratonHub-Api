@@ -1,14 +1,13 @@
 using MongoDB.Driver;
 using MaratonHub.Api.TheMovieDB.Services;
 using MaratonHub.Api.UserMedia;
-using System.Security.Authentication;
 using MaratonHub.Api.Reviews.Reposytory;
 using MaratonHub.Api.TheMovieDB.Repository;
 using MaratonHub.Api.Workers;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- 1. CONFIGURACIÓN DE CORS (Antes de Build) ---
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("OpenPolicy", policy =>
@@ -19,61 +18,47 @@ builder.Services.AddCors(options =>
     });
 });
 
-// --- 2. CONFIGURACIÓN DE MONGODB ATLAS ---
-var mongoSettings = builder.Configuration.GetSection("MongoDbSettings");
-
-builder.Services.AddSingleton<IMongoClient>(sp => 
-{
-    // Render usará la Variable de Entorno que pusimos; en local usará appsettings
-    var connectionString = builder.Configuration["MongoDbSettings__ConnectionString"] 
-                           ?? mongoSettings["ConnectionString"]!;
+// MONGODB ATLAS
+builder.Services.AddSingleton<IMongoClient>(sp => {
+    var config = sp.GetRequiredService<IConfiguration>();
+    var connectionString = config["MongoDbSettings__ConnectionString"] 
+                           ?? config.GetSection("MongoDbSettings")["ConnectionString"];
     
-    var mongoUrl = new MongoUrl(connectionString);
-    var clientSettings = MongoClientSettings.FromUrl(mongoUrl);
-
-    clientSettings.SslSettings = new SslSettings
+    if (string.IsNullOrEmpty(connectionString))
     {
-        EnabledSslProtocols = SslProtocols.Tls12,
-        ServerCertificateValidationCallback = (sender, cert, chain, errors) => true
-    };
+        throw new Exception("MongoDB Connection String is missing!");
+    }
 
-    return new MongoClient(clientSettings);
+    var settings = MongoClientSettings.FromUrl(new MongoUrl(connectionString));
+    settings.ConnectTimeout = TimeSpan.FromSeconds(10); 
+    settings.ServerSelectionTimeout = TimeSpan.FromSeconds(10);
+    
+    return new MongoClient(settings);
 });
 
-builder.Services.AddScoped(sp => 
-{
+builder.Services.AddScoped(sp => {
+    var config = sp.GetRequiredService<IConfiguration>();
     var client = sp.GetRequiredService<IMongoClient>();
-    var dbName = builder.Configuration["MongoDbSettings__DatabaseName"] 
-                 ?? mongoSettings["DatabaseName"] 
-                 ?? "MaratonHub";
+    var dbName = config["MongoDbSettings__DatabaseName"] ?? "MaratonHub";
     return client.GetDatabase(dbName);
 });
 
-// --- 3. REGISTRO DE SERVICIOS (Dependency Injection) ---
+// REGISTRO DE SERVICIOS 
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
-
 builder.Services.AddScoped<ITheMovieDBService, TheMovieDBService>();
 builder.Services.AddScoped<IMediaCacheRepository, MediaCacheRepository>();
 builder.Services.AddScoped<IMediaService, MediaService>();
 builder.Services.AddScoped<IMediaRepository, MediaRepository>();
 builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
 
-// Worker de Sincronización
 builder.Services.AddHostedService<TmdbCacheSyncWorker>();
 
 var app = builder.Build();
 
-// Swagger / OpenAPI
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-
-// IMPORTANTE: UseCors debe ir después de UseRouting (implícito) y antes de MapControllers
+// 4. MIDDLEWARE 
 app.UseCors("OpenPolicy");
-
-app.UseAuthorization();
 app.MapControllers();
 
+// Endpoint 
+app.MapGet("/", () => "API de MaratonHub operativa"); 
 app.Run();
