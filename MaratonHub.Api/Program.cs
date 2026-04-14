@@ -51,7 +51,7 @@ builder.Services.AddScoped<IMediaService, MediaService>();
 builder.Services.AddScoped<IMediaRepository, MediaRepository>();
 builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
 
-builder.Services.AddHostedService<TmdbCacheSyncWorker>();
+// builder.Services.AddHostedService<TmdbCacheSyncWorker>();
 
 var app = builder.Build();
 
