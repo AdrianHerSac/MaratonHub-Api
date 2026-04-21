@@ -4,6 +4,10 @@ using MaratonHub.Api.UserMedia;
 using MaratonHub.Api.Reviews.Reposytory;
 using MaratonHub.Api.TheMovieDB.Repository;
 using MaratonHub.Api.Workers;
+using MaratonHub.Api.Users.Repositories;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,11 +49,31 @@ builder.Services.AddScoped(sp => {
 
 // REGISTRO DE SERVICIOS 
 builder.Services.AddControllers();
+
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = jwtSettings["Secret"]!;
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtSettings["Issuer"],
+            ValidAudience = jwtSettings["Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+        };
+    });
+builder.Services.AddAuthorization();
 builder.Services.AddScoped<ITheMovieDBService, TheMovieDBService>();
 builder.Services.AddScoped<IMediaCacheRepository, MediaCacheRepository>();
 builder.Services.AddScoped<IMediaService, MediaService>();
 builder.Services.AddScoped<IMediaRepository, MediaRepository>();
 builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // builder.Services.AddHostedService<TmdbCacheSyncWorker>();
 
@@ -57,6 +81,10 @@ var app = builder.Build();
 
 // 4. MIDDLEWARE 
 app.UseCors("OpenPolicy");
+
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
 
 // Endpoint 

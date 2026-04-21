@@ -3,6 +3,8 @@ using MaratonHub.Api.Reviews.Dtos;
 using MaratonHub.Api.Reviews.Models;
 using MaratonHub.Api.Reviews.Reposytory;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace MaratonHub.Api.Reviews.Controllers;
 
@@ -61,16 +63,20 @@ public class ReviewsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize]
     public async Task<IActionResult> CreateReview([FromBody] CreateReviewDto dto)
     {
         if (dto.Rating < 1 || dto.Rating > 5)
             return BadRequest("Rating must be between 1 and 5");
 
+        var username = User.Claims.FirstOrDefault(c => c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.UniqueName)?.Value 
+            ?? "Unknown";
+
         var review = new Review
         {
             MediaId = dto.MediaId,
             MediaType = dto.MediaType,
-            UserName = dto.UserName,
+            UserName = username,
             Rating = dto.Rating,
             Comment = dto.Comment
         };
@@ -92,6 +98,7 @@ public class ReviewsController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize]
     public async Task<IActionResult> UpdateReview(string id, [FromBody] CreateReviewDto dto)
     {
         if (dto.Rating < 1 || dto.Rating > 5)
@@ -112,6 +119,7 @@ public class ReviewsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize]
     public async Task<IActionResult> DeleteReview(string id)
     {
         var deleted = await _reviewRepository.DeleteReviewAsync(id);

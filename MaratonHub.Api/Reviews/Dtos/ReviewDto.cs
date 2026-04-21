@@ -15,7 +15,6 @@ public class CreateReviewDto
 {
     public int MediaId { get; set; }
     public string MediaType { get; set; } = string.Empty;
-    public string UserName { get; set; } = string.Empty;
     public int Rating { get; set; }
     public string Comment { get; set; } = string.Empty;
 }
