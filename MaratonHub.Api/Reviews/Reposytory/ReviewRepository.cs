@@ -72,4 +72,32 @@ public class ReviewRepository : IReviewRepository
             TotalReviews = reviews.Count
         };
     }
+
+    public async Task<long> FixUnknownReviewsAsync(string userId, string realUsername)
+    {
+        // Caso 1: Tiene el UserId correcto pero el nombre es "Unknown"
+        var filter1 = Builders<Review>.Filter.And(
+            Builders<Review>.Filter.Eq(r => r.UserId, userId),
+            Builders<Review>.Filter.Eq(r => r.UserName, "Unknown")
+        );
+
+        // Caso 2: Es una review antigua (UserId vacío) y el nombre es "Unknown"
+        // Este caso sirve para arreglar las reviews actuales de Adrian
+        var filter2 = Builders<Review>.Filter.And(
+            Builders<Review>.Filter.Or(
+                Builders<Review>.Filter.Eq(r => r.UserId, ""),
+                Builders<Review>.Filter.Exists(r => r.UserId, false)
+            ),
+            Builders<Review>.Filter.Eq(r => r.UserName, "Unknown")
+        );
+
+        var finalFilter = Builders<Review>.Filter.Or(filter1, filter2);
+
+        var update = Builders<Review>.Update
+            .Set(r => r.UserName, realUsername)
+            .Set(r => r.UserId, userId); // También les ponemos el ID si no lo tenían
+
+        var result = await _reviews.UpdateManyAsync(finalFilter, update);
+        return result.ModifiedCount;
+    }
 }

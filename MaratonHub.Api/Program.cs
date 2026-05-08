@@ -11,6 +11,10 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Desactivar el mapeo automático de claims JWT para que se usen los nombres originales
+// (evita que "unique_name" se mapee a ClaimTypes.Name URI larga)
+System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+
 // CORS
 builder.Services.AddCors(options =>
 {
@@ -56,6 +60,7 @@ var secretKey = jwtSettings["Secret"]!;
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.MapInboundClaims = false; // Evita que "unique_name" se transforme a URI larga
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,

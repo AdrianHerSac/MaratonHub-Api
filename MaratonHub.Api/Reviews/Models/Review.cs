@@ -9,6 +9,8 @@ public class Review
     [BsonRepresentation(BsonType.ObjectId)]
     public string? Id { get; set; }
 
+    public string UserId { get; set; } = string.Empty;
+
     public int MediaId { get; set; }
     
     public string MediaType { get; set; } = string.Empty; 

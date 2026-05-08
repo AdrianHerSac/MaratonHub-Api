@@ -3,6 +3,7 @@ namespace MaratonHub.Api.Reviews.Dtos;
 public class ReviewDto
 {
     public string? Id { get; set; }
+    public string UserId { get; set; } = string.Empty;
     public int MediaId { get; set; }
     public string MediaType { get; set; } = string.Empty; // "Movie", "TvShow", "Person"
     public string UserName { get; set; } = string.Empty;
