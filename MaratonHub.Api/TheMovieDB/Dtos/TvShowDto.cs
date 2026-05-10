@@ -17,4 +17,8 @@ public class TvShowDto
     public int? NumberOfSeasons { get; set; }
     public int? NumberOfEpisodes { get; set; }
     public string? Status { get; set; }
+    
+    public List<CastDto> Cast { get; set; } = new();
+    public string? Director { get; set; }
+    public List<VideoDto> Videos { get; set; } = new();
 }

@@ -12,5 +12,8 @@ public class MovieDto
     public int VoteCount { get; set; }
     public string? OriginalLanguage { get; set; }
     public List<GenreDto> Genres { get; set; } = new();
+    public List<CastDto> Cast { get; set; } = new();
+    public string? Director { get; set; }
+    public List<VideoDto> Videos { get; set; } = new();
 }
 

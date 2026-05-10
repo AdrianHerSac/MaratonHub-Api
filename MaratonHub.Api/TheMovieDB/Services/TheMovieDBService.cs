@@ -1,5 +1,6 @@
 using MaratonHub.Api.TheMovieDB.Dtos;
 using MaratonHub.Api.TheMovieDB.Repository;
+using MaratonHub.Api.Common;
 using TMDbLib.Client;
 using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.People;
@@ -15,19 +16,21 @@ public class TheMovieDBService : ITheMovieDBService
 {
     private readonly TMDbClient _tmdbClient;
     private readonly IMediaCacheRepository _mediaCache;
+    private readonly IRedisCacheService _redisCache;
     private readonly ILogger<TheMovieDBService> _logger;
 
-    public TheMovieDBService(IConfiguration configuration, IMediaCacheRepository mediaCache, ILogger<TheMovieDBService> logger)
+    public TheMovieDBService(IConfiguration configuration, IMediaCacheRepository mediaCache, IRedisCacheService redisCache, ILogger<TheMovieDBService> logger)
     {
         var apiKey = configuration["TheMovieDB:ApiKey"] ?? throw new InvalidOperationException("TMDb API Key not configured");
         _tmdbClient = new TMDbClient(apiKey);
         _tmdbClient.DefaultLanguage = "es-ES";
         _tmdbClient.DefaultCountry = "ES";
         _mediaCache = mediaCache;
+        _redisCache = redisCache;
         _logger = logger;
     }
 
-    // ── Movies ───────────────────────────────────────────────────────────────
+    // ── Movies 
 
     /// <summary>
     /// Obtiene las películas que son tendencia en las últimas 24 horas.
@@ -106,16 +109,38 @@ public class TheMovieDBService : ITheMovieDBService
     /// <returns>A task that represents the asynchronous operation, containing a list of matching movies as <see cref="MovieDto"/>.</returns>
     public async Task<List<MovieDto>> SearchMoviesAsync(string query)
     {
+        var cacheKey = $"movie_search_{query.ToLowerInvariant().Replace(" ", "_")}";
+        
+        var cached = await _redisCache.GetAsync<List<MovieDto>>(cacheKey);
+        if (cached != null) return cached;
+
         var results = await _tmdbClient.SearchMovieAsync(query, language: "es-ES");
-        return results?.Results?.Select(MapSearchMovieToDto).ToList() ?? new List<MovieDto>();
+        var movies = results?.Results?.Select(MapSearchMovieToDto).ToList() ?? new List<MovieDto>();
+
+        if (movies.Count > 0)
+        {
+            await _redisCache.SetAsync(cacheKey, movies, TimeSpan.FromMinutes(15));
+        }
+
+        return movies;
     }
 
-    public async Task<MovieDto?> GetMovieDetailsAsync(int id)
+
+public async Task<MovieDto?> GetMovieDetailsAsync(int id)
     {
+        var cacheKey = $"movie_v2_{id}";
+        
+        var cached = await _redisCache.GetAsync<MovieDto>(cacheKey);
+        if (cached != null) return cached;
+
         try
         {
-            var movie = await _tmdbClient.GetMovieAsync(id, language: "es-ES");
-            return movie == null ? null : MapMovieToDto(movie);
+            var movie = await _tmdbClient.GetMovieAsync(id, MovieMethods.Credits | MovieMethods.Videos);
+            if (movie == null) return null;
+
+            var dto = MapMovieToDto(movie);
+            await _redisCache.SetAsync(cacheKey, dto, TimeSpan.FromHours(2));
+            return dto;
         }
         catch (Exception ex)
         {
@@ -231,28 +256,49 @@ public class TheMovieDBService : ITheMovieDBService
         return result;
     }
 
-    /// <summary>
+/// <summary>
     /// Busca series TV por título.
     /// </summary>
     /// <param name="query">Término de búsqueda.</param>
     /// <returns>Lista de series TV encontradas.</returns>
     public async Task<List<TvShowDto>> SearchTvShowsAsync(string query)
     {
+        var cacheKey = $"tvsearch_{query.ToLowerInvariant().Replace(" ", "_")}";
+        
+        var cached = await _redisCache.GetAsync<List<TvShowDto>>(cacheKey);
+        if (cached != null) return cached;
+
         var results = await _tmdbClient.SearchTvShowAsync(query, language: "es-ES");
-        return results?.Results?.Select(MapSearchTvToDto).ToList() ?? new List<TvShowDto>();
+        var tvShows = results?.Results?.Select(MapSearchTvToDto).ToList() ?? new List<TvShowDto>();
+
+        if (tvShows.Count > 0)
+        {
+            await _redisCache.SetAsync(cacheKey, tvShows, TimeSpan.FromMinutes(15));
+        }
+
+        return tvShows;
     }
 
-    /// <summary>
+/// <summary>
     /// Obtiene los detalles completos de una serie TV por ID.
     /// </summary>
     /// <param name="id">ID de la serie TV.</param>
     /// <returns>Objeto TvShowDto con los detalles o null si no se encuentra.</returns>
     public async Task<TvShowDto?> GetTvShowDetailsAsync(int id)
     {
+        var cacheKey = $"tv_v2_{id}";
+        
+        var cached = await _redisCache.GetAsync<TvShowDto>(cacheKey);
+        if (cached != null) return cached;
+
         try
         {
-            var tvShow = await _tmdbClient.GetTvShowAsync(id, language: "es-ES");
-            return tvShow == null ? null : MapTvShowToDto(tvShow);
+            var tvShow = await _tmdbClient.GetTvShowAsync(id, TvShowMethods.Credits | TvShowMethods.Videos);
+            if (tvShow == null) return null;
+
+            var dto = MapTvShowToDto(tvShow);
+            await _redisCache.SetAsync(cacheKey, dto, TimeSpan.FromHours(2));
+            return dto;
         }
         catch (Exception ex)
         {
@@ -289,28 +335,49 @@ public class TheMovieDBService : ITheMovieDBService
         return result;
     }
 
-    /// <summary>
+/// <summary>
     /// Busca personas por nombre.
     /// </summary>
     /// <param name="query">Término de búsqueda.</param>
     /// <returns>Lista de personas encontradas.</returns>
     public async Task<List<PersonDto>> SearchPersonsAsync(string query)
     {
+        var cacheKey = $"person_search_{query.ToLowerInvariant().Replace(" ", "_")}";
+        
+        var cached = await _redisCache.GetAsync<List<PersonDto>>(cacheKey);
+        if (cached != null) return cached;
+
         var results = await _tmdbClient.SearchPersonAsync(query, language: "es-ES");
-        return results?.Results?.Select(MapSearchPersonToDto).ToList() ?? new List<PersonDto>();
+        var persons = results?.Results?.Select(MapSearchPersonToDto).ToList() ?? new List<PersonDto>();
+
+        if (persons.Count > 0)
+        {
+            await _redisCache.SetAsync(cacheKey, persons, TimeSpan.FromMinutes(15));
+        }
+
+        return persons;
     }
 
-    /// <summary>
+/// <summary>
     /// Obtiene los detalles completos de una persona por ID.
     /// </summary>
     /// <param name="id">ID de la persona.</param>
     /// <returns>Objeto PersonDto con los detalles o null si no se encuentra.</returns>
     public async Task<PersonDto?> GetPersonDetailsAsync(int id)
     {
+        var cacheKey = $"person_{id}";
+        
+        var cached = await _redisCache.GetAsync<PersonDto>(cacheKey);
+        if (cached != null) return cached;
+
         try
         {
             var person = await _tmdbClient.GetPersonAsync(id, language: "es-ES");
-            return person == null ? null : MapPersonToDto(person);
+            if (person == null) return null;
+
+            var dto = MapPersonToDto(person);
+            await _redisCache.SetAsync(cacheKey, dto, TimeSpan.FromHours(2));
+            return dto;
         }
         catch (Exception ex)
         {
@@ -352,7 +419,10 @@ public class TheMovieDBService : ITheMovieDBService
         VoteAverage = movie.VoteAverage,
         VoteCount = movie.VoteCount,
         OriginalLanguage = movie.OriginalLanguage,
-        Genres = movie.Genres?.Select(g => new GenreDto { Id = g.Id, Name = g.Name }).ToList() ?? new List<GenreDto>()
+        Genres = movie.Genres?.Select(g => new GenreDto { Id = g.Id, Name = g.Name }).ToList() ?? new List<GenreDto>(),
+        Cast = movie.Credits?.Cast?.Take(10).Select(c => new CastDto { Id = c.Id, Name = c.Name, Character = c.Character, ProfilePath = c.ProfilePath }).ToList() ?? new List<CastDto>(),
+        Director = movie.Credits?.Crew?.FirstOrDefault(c => c.Job == "Director")?.Name,
+        Videos = movie.Videos?.Results?.Where(v => v.Site == "YouTube").Select(v => new VideoDto { Id = v.Id, Key = v.Key, Name = v.Name, Site = v.Site, Type = v.Type }).ToList() ?? new List<VideoDto>()
     };
 
     /// <summary>
@@ -389,7 +459,10 @@ public class TheMovieDBService : ITheMovieDBService
         Genres = tvShow.Genres?.Select(g => new GenreDto { Id = g.Id, Name = g.Name }).ToList() ?? new List<GenreDto>(),
         NumberOfSeasons = tvShow.NumberOfSeasons,
         NumberOfEpisodes = tvShow.NumberOfEpisodes,
-        Status = tvShow.Status
+        Status = tvShow.Status,
+        Cast = tvShow.Credits?.Cast?.Take(10).Select(c => new CastDto { Id = c.Id, Name = c.Name, Character = c.Character, ProfilePath = c.ProfilePath }).ToList() ?? new List<CastDto>(),
+        Director = tvShow.CreatedBy?.FirstOrDefault()?.Name ?? tvShow.Credits?.Crew?.FirstOrDefault(c => c.Job == "Executive Producer" || c.Job == "Director")?.Name,
+        Videos = tvShow.Videos?.Results?.Where(v => v.Site == "YouTube").Select(v => new VideoDto { Id = v.Id, Key = v.Key, Name = v.Name, Site = v.Site, Type = v.Type }).ToList() ?? new List<VideoDto>()
     };
 
     /// <summary>

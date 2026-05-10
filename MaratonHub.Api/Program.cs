@@ -5,6 +5,7 @@ using MaratonHub.Api.Reviews.Reposytory;
 using MaratonHub.Api.TheMovieDB.Repository;
 using MaratonHub.Api.Workers;
 using MaratonHub.Api.Users.Repositories;
+using MaratonHub.Api.Common;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -75,6 +76,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<ITheMovieDBService, TheMovieDBService>();
 builder.Services.AddScoped<IMediaCacheRepository, MediaCacheRepository>();
+builder.Services.AddSingleton<IRedisCacheService, RedisCacheService>();
 builder.Services.AddScoped<IMediaService, MediaService>();
 builder.Services.AddScoped<IMediaRepository, MediaRepository>();
 builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
