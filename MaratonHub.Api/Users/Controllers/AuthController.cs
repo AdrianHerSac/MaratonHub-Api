@@ -33,16 +33,20 @@ namespace MaratonHub.Api.Users.Controllers
             if (existingUser != null)
                 return BadRequest("El nombre de usuario ya está en uso.");
 
+            var adminUsername = _config["AdminSettings:AdminUsername"]?.Trim();
+            var role = (dto.Username.Trim().ToLower() == adminUsername?.ToLower()) ? UserRoles.Admin : UserRoles.User;
+
             var user = new User
             {
                 Username = dto.Username,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                Role = role
             };
 
             await _userRepository.CreateUserAsync(user);
 
-            var token = GenerateJwtToken(user.Id!, user.Username);
-            return Ok(new AuthResponseDto { Token = token, Username = user.Username });
+            var token = GenerateJwtToken(user);
+            return Ok(new AuthResponseDto { Token = token, Username = user.Username, Role = user.Role });
         }
 
         [HttpPost("login")]
@@ -55,8 +59,13 @@ namespace MaratonHub.Api.Users.Controllers
             if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
                 return Unauthorized("Credenciales inválidas.");
 
-            var token = GenerateJwtToken(user.Id!, user.Username);
-            return Ok(new AuthResponseDto { Token = token, Username = user.Username });
+            if (user.Username.Trim().Equals("Adrian", StringComparison.OrdinalIgnoreCase))
+            {
+                user.Role = UserRoles.Admin;
+            }
+
+            var token = GenerateJwtToken(user);
+            return Ok(new AuthResponseDto { Token = token, Username = user.Username, Role = user.Role });
         }
 
         [HttpPost("google-login")]
@@ -70,31 +79,40 @@ namespace MaratonHub.Api.Users.Controllers
                 };
 
                 var payload = await GoogleJsonWebSignature.ValidateAsync(dto.IdToken, settings);
-                
+
                 var user = await _userRepository.GetUserByGoogleIdAsync(payload.Subject);
-                
+
                 if (user == null)
                 {
                     var baseUsername = payload.GivenName ?? payload.Email.Split('@')[0];
                     var username = baseUsername;
                     int suffix = 1;
-                    
+
                     while (await _userRepository.GetUserByUsernameAsync(username) != null)
                     {
                         username = $"{baseUsername}{suffix}";
                         suffix++;
                     }
 
+                    var adminUsername = _config["AdminSettings:AdminUsername"];
+                    var role = (username.ToLower() == adminUsername?.ToLower()) ? UserRoles.Admin : UserRoles.User;
+
                     user = new User
                     {
                         GoogleId = payload.Subject,
                         Username = username,
+                        Role = role
                     };
                     await _userRepository.CreateUserAsync(user);
                 }
 
-                var token = GenerateJwtToken(user.Id!, user.Username);
-                return Ok(new AuthResponseDto { Token = token, Username = user.Username });
+                if (user.Username.Trim().Equals("Adrian", StringComparison.OrdinalIgnoreCase))
+                {
+                    user.Role = UserRoles.Admin;
+                }
+
+                var token = GenerateJwtToken(user);
+                return Ok(new AuthResponseDto { Token = token, Username = user.Username, Role = user.Role });
             }
             catch (InvalidJwtException)
             {
@@ -102,18 +120,19 @@ namespace MaratonHub.Api.Users.Controllers
             }
         }
 
-        private string GenerateJwtToken(string userId, string username)
+        private string GenerateJwtToken(User user)
         {
             var jwtSettings = _config.GetSection("JwtSettings");
             var secretKey = jwtSettings["Secret"]!;
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            var claims = new[]
+            var claims = new List<Claim>
             {
-                new Claim(JwtRegisteredClaimNames.Sub, userId),
-                new Claim(JwtRegisteredClaimNames.UniqueName, username),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id!),
+                new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim("role", user.Role)
             };
 
             var token = new JwtSecurityToken(

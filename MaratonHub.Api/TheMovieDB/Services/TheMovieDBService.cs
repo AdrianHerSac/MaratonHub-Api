@@ -128,7 +128,7 @@ public class TheMovieDBService : ITheMovieDBService
 
 public async Task<MovieDto?> GetMovieDetailsAsync(int id)
     {
-        var cacheKey = $"movie_v2_{id}";
+        var cacheKey = $"movie_v3_{id}";
         
         var cached = await _redisCache.GetAsync<MovieDto>(cacheKey);
         if (cached != null) return cached;
@@ -286,7 +286,7 @@ public async Task<MovieDto?> GetMovieDetailsAsync(int id)
     /// <returns>Objeto TvShowDto con los detalles o null si no se encuentra.</returns>
     public async Task<TvShowDto?> GetTvShowDetailsAsync(int id)
     {
-        var cacheKey = $"tv_v2_{id}";
+        var cacheKey = $"tv_v3_{id}";
         
         var cached = await _redisCache.GetAsync<TvShowDto>(cacheKey);
         if (cached != null) return cached;

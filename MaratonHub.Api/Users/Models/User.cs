@@ -14,6 +14,8 @@ namespace MaratonHub.Api.Users.Models
         public string PasswordHash { get; set; } = string.Empty;
 
         public string? GoogleId { get; set; }
+        
+        public string Role { get; set; } = UserRoles.User;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

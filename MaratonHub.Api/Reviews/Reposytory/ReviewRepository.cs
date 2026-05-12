@@ -100,4 +100,9 @@ public class ReviewRepository : IReviewRepository
         var result = await _reviews.UpdateManyAsync(finalFilter, update);
         return result.ModifiedCount;
     }
+
+    public async Task<long> CountReviewsAsync()
+    {
+        return await _reviews.CountDocumentsAsync(_ => true);
+    }
 }
