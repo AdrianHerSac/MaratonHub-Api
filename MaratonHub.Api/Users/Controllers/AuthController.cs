@@ -64,6 +64,9 @@ namespace MaratonHub.Api.Users.Controllers
                 user.Role = UserRoles.Admin;
             }
 
+            user.LastLogin = DateTime.UtcNow;
+            await _userRepository.UpdateUserAsync(user);
+
             var token = GenerateJwtToken(user);
             return Ok(new AuthResponseDto { Token = token, Username = user.Username, Role = user.Role });
         }
@@ -110,6 +113,9 @@ namespace MaratonHub.Api.Users.Controllers
                 {
                     user.Role = UserRoles.Admin;
                 }
+
+                user.LastLogin = DateTime.UtcNow;
+                await _userRepository.UpdateUserAsync(user);
 
                 var token = GenerateJwtToken(user);
                 return Ok(new AuthResponseDto { Token = token, Username = user.Username, Role = user.Role });

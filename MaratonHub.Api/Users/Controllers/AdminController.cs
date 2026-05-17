@@ -23,16 +23,24 @@ namespace MaratonHub.Api.Users.Controllers
         [HttpGet("stats")]
         public async Task<IActionResult> GetStats()
         {
-            var userCount = await _userRepository.CountUsersAsync();
+            var users = await _userRepository.GetAllUsersAsync();
             var reviewCount = await _reviewRepository.CountReviewsAsync();
             
-            // Podríamos añadir más estadísticas aquí
+            var connectedUsers = users.Count(u => u.LastLogin.HasValue && u.LastLogin.Value > DateTime.UtcNow.AddMinutes(-30));
+            var recentUsers = users.OrderByDescending(u => u.CreatedAt).Take(5).Select(u => new {
+                u.Username,
+                u.CreatedAt,
+                IsOnline = u.LastLogin.HasValue && u.LastLogin.Value > DateTime.UtcNow.AddMinutes(-30)
+            });
+
             return Ok(new
             {
-                TotalUsers = userCount,
+                TotalUsers = users.Count(),
                 TotalReviews = reviewCount,
+                ConnectedUsers = connectedUsers,
                 SystemStatus = "Operativo",
-                LastUpdate = DateTime.UtcNow
+                LastUpdate = DateTime.UtcNow,
+                RecentUsers = recentUsers
             });
         }
 

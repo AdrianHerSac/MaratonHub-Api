@@ -18,5 +18,7 @@ namespace MaratonHub.Api.Users.Models
         public string Role { get; set; } = UserRoles.User;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public DateTime? LastLogin { get; set; }
     }
 }

@@ -19,6 +19,9 @@ public class TheMovieDBService : ITheMovieDBService
     private readonly IRedisCacheService _redisCache;
     private readonly ILogger<TheMovieDBService> _logger;
 
+    /// <summary>
+    /// Inicializa una nueva instancia de la clase <see cref="TheMovieDBService"/>.
+    /// </summary>
     public TheMovieDBService(IConfiguration configuration, IMediaCacheRepository mediaCache, IRedisCacheService redisCache, ILogger<TheMovieDBService> logger)
     {
         var apiKey = configuration["TheMovieDB:ApiKey"] ?? throw new InvalidOperationException("TMDb API Key not configured");
@@ -125,8 +128,12 @@ public class TheMovieDBService : ITheMovieDBService
         return movies;
     }
 
-
-public async Task<MovieDto?> GetMovieDetailsAsync(int id)
+    /// <summary>
+    /// Obtiene los detalles completos de una película por ID.
+    /// </summary>
+    /// <param name="id">ID de la película.</param>
+    /// <returns>A task that represents the asynchronous operation, containing the movie details as <see cref="MovieDto"/>.</returns>
+    public async Task<MovieDto?> GetMovieDetailsAsync(int id)
     {
         var cacheKey = $"movie_v3_{id}";
         
@@ -149,6 +156,11 @@ public async Task<MovieDto?> GetMovieDetailsAsync(int id)
         }
     }
 
+    /// <summary>
+    /// Obtiene los detalles completos de una película por ID.
+    /// </summary>
+    /// <param name="id">ID de la película.</param>
+    /// <returns>A task that represents the asynchronous operation, containing the movie details as <see cref="MovieDto"/>.</returns>
     public async Task<List<MovieDto>> GetMoviesByGenreAsync(int genreId)
     {
         var key = $"genre_{genreId}_movies_es_extended";
@@ -256,7 +268,7 @@ public async Task<MovieDto?> GetMovieDetailsAsync(int id)
         return result;
     }
 
-/// <summary>
+    /// <summary>
     /// Busca series TV por título.
     /// </summary>
     /// <param name="query">Término de búsqueda.</param>
@@ -279,7 +291,7 @@ public async Task<MovieDto?> GetMovieDetailsAsync(int id)
         return tvShows;
     }
 
-/// <summary>
+    /// <summary>
     /// Obtiene los detalles completos de una serie TV por ID.
     /// </summary>
     /// <param name="id">ID de la serie TV.</param>
@@ -335,7 +347,7 @@ public async Task<MovieDto?> GetMovieDetailsAsync(int id)
         return result;
     }
 
-/// <summary>
+    /// <summary>
     /// Busca personas por nombre.
     /// </summary>
     /// <param name="query">Término de búsqueda.</param>
@@ -358,7 +370,7 @@ public async Task<MovieDto?> GetMovieDetailsAsync(int id)
         return persons;
     }
 
-/// <summary>
+    /// <summary>
     /// Obtiene los detalles completos de una persona por ID.
     /// </summary>
     /// <param name="id">ID de la persona.</param>
@@ -375,7 +387,37 @@ public async Task<MovieDto?> GetMovieDetailsAsync(int id)
             var person = await _tmdbClient.GetPersonAsync(id, language: "es-ES");
             if (person == null) return null;
 
-            var dto = MapPersonToDto(person);
+            // Fallback biography to English if empty/null in Spanish
+            if (string.IsNullOrEmpty(person.Biography))
+            {
+                try
+                {
+                    var enPerson = await _tmdbClient.GetPersonAsync(id, language: "en-US");
+                    if (enPerson != null && !string.IsNullOrEmpty(enPerson.Biography))
+                    {
+                        person.Biography = enPerson.Biography;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning("Error fetching English fallback biography for person {Id}: {Msg}", id, ex.Message);
+                }
+            }
+
+            // Fetch movie and TV credits separately
+            TMDbLib.Objects.People.MovieCredits? movieCredits = null;
+            TMDbLib.Objects.People.TvCredits? tvCredits = null;
+            try
+            {
+                movieCredits = await _tmdbClient.GetPersonMovieCreditsAsync(id);
+                tvCredits = await _tmdbClient.GetPersonTvCreditsAsync(id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("Error fetching credits for person {Id}: {Msg}", id, ex.Message);
+            }
+
+            var dto = MapPersonToDto(person, movieCredits, tvCredits);
             await _redisCache.SetAsync(cacheKey, dto, TimeSpan.FromHours(2));
             return dto;
         }
@@ -483,17 +525,54 @@ public async Task<MovieDto?> GetMovieDetailsAsync(int id)
     /// <summary>
     /// Convierte un objeto Person a PersonDto.
     /// </summary>
-    private static PersonDto MapPersonToDto(Person person) => new()
+    private static PersonDto MapPersonToDto(Person person, TMDbLib.Objects.People.MovieCredits? movieCredits, TMDbLib.Objects.People.TvCredits? tvCredits)
     {
-        Id = person.Id,
-        Name = person.Name ?? string.Empty,
-        ProfilePath = person.ProfilePath,
-        Popularity = person.Popularity,
-        KnownForDepartment = person.KnownForDepartment,
-        Biography = person.Biography,
-        Birthday = person.Birthday,
-        PlaceOfBirth = person.PlaceOfBirth
-    };
+        var dto = new PersonDto
+        {
+            Id = person.Id,
+            Name = person.Name ?? string.Empty,
+            ProfilePath = person.ProfilePath,
+            Popularity = person.Popularity,
+            KnownForDepartment = person.KnownForDepartment,
+            Biography = person.Biography,
+            Birthday = person.Birthday,
+            PlaceOfBirth = person.PlaceOfBirth,
+            Credits = new List<PersonCreditDto>()
+        };
+
+        if (movieCredits?.Cast != null)
+        {
+            dto.Credits.AddRange(movieCredits.Cast.Select(c => new PersonCreditDto
+            {
+                Id = c.Id,
+                Title = c.Title ?? string.Empty,
+                PosterPath = c.PosterPath,
+                Character = c.Character,
+                MediaType = "movie",
+                ReleaseDate = c.ReleaseDate
+            }));
+        }
+
+        if (tvCredits?.Cast != null)
+        {
+            dto.Credits.AddRange(tvCredits.Cast.Select(c => new PersonCreditDto
+            {
+                Id = c.Id,
+                Title = c.Name ?? string.Empty,
+                PosterPath = c.PosterPath,
+                Character = c.Character,
+                MediaType = "tv",
+                ReleaseDate = c.FirstAirDate
+            }));
+        }
+
+        dto.Credits = dto.Credits
+            .OrderByDescending(c => c.ReleaseDate.HasValue)
+            .ThenByDescending(c => c.ReleaseDate)
+            .ToList();
+
+        return dto;
+    }
 
     // ── Daily Changes ───────────────────────────────────────
 

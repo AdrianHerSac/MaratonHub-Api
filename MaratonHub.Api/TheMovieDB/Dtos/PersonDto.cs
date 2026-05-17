@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace MaratonHub.Api.TheMovieDB.Dtos;
 
 public class PersonDto
@@ -10,4 +13,15 @@ public class PersonDto
     public string? Biography { get; set; }
     public DateTime? Birthday { get; set; }
     public string? PlaceOfBirth { get; set; }
+    public List<PersonCreditDto> Credits { get; set; } = new();
+}
+
+public class PersonCreditDto
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? PosterPath { get; set; }
+    public string? Character { get; set; }
+    public string MediaType { get; set; } = string.Empty; // "movie" or "tv"
+    public DateTime? ReleaseDate { get; set; }
 }
