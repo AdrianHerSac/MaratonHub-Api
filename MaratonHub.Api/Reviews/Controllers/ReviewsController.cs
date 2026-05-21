@@ -36,6 +36,31 @@ public class ReviewsController : ControllerBase
         return Ok(new { claims, identityName = identity });
     }
 
+    // <sumary> GET /api/reviews/top-rated/{mediaType}
+    // Obtiene las medias mejor valoradas de un tipo
+    // </sumary>
+    // <response code="200">Top rated obtenido exitosamente</response>
+    [HttpGet("top-rated/{mediaType}")]
+    public async Task<IActionResult> GetTopRated(string mediaType, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        string dbMediaType = mediaType.ToLower() switch
+        {
+            "movie" => "Movie",
+            "tv" => "TvShow",
+            "person" => "Person",
+            _ => mediaType
+        };
+
+        var result = await _reviewRepository.GetTopRatedMediaAsync(dbMediaType, page, pageSize);
+
+        foreach (var item in result)
+        {
+            item.MediaType = mediaType;
+        }
+
+        return Ok(result);
+    }
+
     // <sumary> GET /api/reviews/average/{mediaType}/{mediaId}
     // Obtiene el promedio de las reviews de una media
     // </sumary>

@@ -14,4 +14,5 @@ public interface IReviewRepository
     Task<RatingAverageDto> GetAverageRatingAsync(int mediaId, string mediaType);
     Task<long> FixUnknownReviewsAsync(string userId, string realUsername);
     Task<long> CountReviewsAsync();
+    Task<List<TopRatedAppMediaDto>> GetTopRatedMediaAsync(string mediaType, int page, int pageSize);
 }
