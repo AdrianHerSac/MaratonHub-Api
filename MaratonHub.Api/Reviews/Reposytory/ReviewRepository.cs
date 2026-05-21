@@ -1,6 +1,7 @@
 using MaratonHub.Api.Reviews.Dtos;
 using MaratonHub.Api.Reviews.Models;
 using MongoDB.Driver;
+using MongoDB.Bson;
 
 namespace MaratonHub.Api.Reviews.Reposytory;
 
@@ -104,5 +105,38 @@ public class ReviewRepository : IReviewRepository
     public async Task<long> CountReviewsAsync()
     {
         return await _reviews.CountDocumentsAsync(_ => true);
+    }
+
+    public async Task<List<TopRatedAppMediaDto>> GetTopRatedMediaAsync(string mediaType, int page, int pageSize)
+    {
+        var pipeline = new[]
+        {
+            new BsonDocument("$match", new BsonDocument("MediaType", mediaType)),
+            new BsonDocument("$group", new BsonDocument
+            {
+                { "_id", "$MediaId" },
+                { "Average", new BsonDocument("$avg", "$Rating") },
+                { "TotalReviews", new BsonDocument("$sum", 1) }
+            }),
+            new BsonDocument("$sort", new BsonDocument("Average", -1)),
+            new BsonDocument("$skip", (page - 1) * pageSize),
+            new BsonDocument("$limit", pageSize)
+        };
+
+        var cursor = await _reviews.AggregateAsync<BsonDocument>(pipeline);
+        var docs = await cursor.ToListAsync();
+
+        return docs.Select(d => 
+        {
+            var avg = d["Average"].ToDouble();
+            return new TopRatedAppMediaDto
+            {
+                MediaId = d["_id"].AsInt32,
+                MediaType = mediaType,
+                Average = Math.Round(avg, 1),
+                Percentage = (int)Math.Round(avg / 5.0 * 100),
+                TotalReviews = d["TotalReviews"].AsInt32
+            };
+        }).ToList();
     }
 }
