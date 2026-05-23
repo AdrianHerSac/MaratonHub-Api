@@ -331,12 +331,12 @@ public class TheMovieDBService : ITheMovieDBService
 
         try
         {
-            var season = await _tmdbClient.GetTvSeasonAsync(tvShowId, seasonNumber, "es-ES");
+            var season = await _tmdbClient.GetTvSeasonAsync(tvShowId, seasonNumber, language: "es-ES");
             if (season == null) return null;
 
             var dto = new SeasonDto
             {
-                Id = season.Id,
+                Id = (int)season.Id,
                 SeasonNumber = season.SeasonNumber,
                 Name = season.Name ?? string.Empty,
                 Overview = season.Overview ?? string.Empty,
@@ -345,13 +345,13 @@ public class TheMovieDBService : ITheMovieDBService
                 AirDate = season.AirDate,
                 Episodes = season.Episodes?.Select(e => new EpisodeDto
                 {
-                    Id = e.Id,
-                    EpisodeNumber = e.EpisodeNumber,
+                    Id = (int)e.Id,
+                    EpisodeNumber = e.EpisodeNumber ?? 0,
                     Name = e.Name ?? string.Empty,
                     Overview = e.Overview ?? string.Empty,
                     StillPath = e.StillPath,
                     AirDate = e.AirDate,
-                    VoteAverage = e.VoteAverage
+                    VoteAverage = e.VoteAverage ?? 0.0
                 }).ToList() ?? new List<EpisodeDto>()
             };
 
@@ -552,12 +552,12 @@ public class TheMovieDBService : ITheMovieDBService
         Director = tvShow.CreatedBy?.FirstOrDefault()?.Name ?? tvShow.Credits?.Crew?.FirstOrDefault(c => c.Job == "Executive Producer" || c.Job == "Director")?.Name,
         Videos = tvShow.Videos?.Results?.Where(v => v.Site == "YouTube").Select(v => new VideoDto { Id = v.Id, Key = v.Key, Name = v.Name, Site = v.Site, Type = v.Type }).ToList() ?? new List<VideoDto>(),
         Seasons = tvShow.Seasons?.Select(s => new SeasonDto {
-            Id = s.Id,
-            SeasonNumber = s.SeasonNumber,
+            Id = (int)s.Id,
+            SeasonNumber = s.SeasonNumber ?? 0,
             Name = s.Name ?? string.Empty,
             Overview = s.Overview ?? string.Empty,
             PosterPath = s.PosterPath,
-            EpisodeCount = s.EpisodeCount,
+            EpisodeCount = s.EpisodeCount ?? 0,
             AirDate = s.AirDate
         }).OrderBy(s => s.SeasonNumber).ToList() ?? new List<SeasonDto>()
     };
