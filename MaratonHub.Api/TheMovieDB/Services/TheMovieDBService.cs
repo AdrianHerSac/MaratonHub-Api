@@ -319,6 +319,52 @@ public class TheMovieDBService : ITheMovieDBService
         }
     }
 
+    /// <summary>
+    /// Obtiene los detalles de una temporada de una serie, incluyendo sus episodios.
+    /// </summary>
+    public async Task<SeasonDto?> GetTvShowSeasonAsync(int tvShowId, int seasonNumber)
+    {
+        var cacheKey = $"tv_{tvShowId}_season_{seasonNumber}";
+        
+        var cached = await _redisCache.GetAsync<SeasonDto>(cacheKey);
+        if (cached != null) return cached;
+
+        try
+        {
+            var season = await _tmdbClient.GetTvSeasonAsync(tvShowId, seasonNumber, "es-ES");
+            if (season == null) return null;
+
+            var dto = new SeasonDto
+            {
+                Id = season.Id,
+                SeasonNumber = season.SeasonNumber,
+                Name = season.Name ?? string.Empty,
+                Overview = season.Overview ?? string.Empty,
+                PosterPath = season.PosterPath,
+                EpisodeCount = season.Episodes?.Count ?? 0,
+                AirDate = season.AirDate,
+                Episodes = season.Episodes?.Select(e => new EpisodeDto
+                {
+                    Id = e.Id,
+                    EpisodeNumber = e.EpisodeNumber,
+                    Name = e.Name ?? string.Empty,
+                    Overview = e.Overview ?? string.Empty,
+                    StillPath = e.StillPath,
+                    AirDate = e.AirDate,
+                    VoteAverage = e.VoteAverage
+                }).ToList() ?? new List<EpisodeDto>()
+            };
+
+            await _redisCache.SetAsync(cacheKey, dto, TimeSpan.FromHours(24));
+            return dto;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error getting TV season details for id {Id}, season {Season}: {Msg}", tvShowId, seasonNumber, ex.Message);
+            return null;
+        }
+    }
+
     // ── Persons ───────────────────────────────────────────────────────────────
 
     /// <summary>
@@ -504,7 +550,16 @@ public class TheMovieDBService : ITheMovieDBService
         Status = tvShow.Status,
         Cast = tvShow.Credits?.Cast?.Take(10).Select(c => new CastDto { Id = c.Id, Name = c.Name, Character = c.Character, ProfilePath = c.ProfilePath }).ToList() ?? new List<CastDto>(),
         Director = tvShow.CreatedBy?.FirstOrDefault()?.Name ?? tvShow.Credits?.Crew?.FirstOrDefault(c => c.Job == "Executive Producer" || c.Job == "Director")?.Name,
-        Videos = tvShow.Videos?.Results?.Where(v => v.Site == "YouTube").Select(v => new VideoDto { Id = v.Id, Key = v.Key, Name = v.Name, Site = v.Site, Type = v.Type }).ToList() ?? new List<VideoDto>()
+        Videos = tvShow.Videos?.Results?.Where(v => v.Site == "YouTube").Select(v => new VideoDto { Id = v.Id, Key = v.Key, Name = v.Name, Site = v.Site, Type = v.Type }).ToList() ?? new List<VideoDto>(),
+        Seasons = tvShow.Seasons?.Select(s => new SeasonDto {
+            Id = s.Id,
+            SeasonNumber = s.SeasonNumber,
+            Name = s.Name ?? string.Empty,
+            Overview = s.Overview ?? string.Empty,
+            PosterPath = s.PosterPath,
+            EpisodeCount = s.EpisodeCount,
+            AirDate = s.AirDate
+        }).OrderBy(s => s.SeasonNumber).ToList() ?? new List<SeasonDto>()
     };
 
     /// <summary>

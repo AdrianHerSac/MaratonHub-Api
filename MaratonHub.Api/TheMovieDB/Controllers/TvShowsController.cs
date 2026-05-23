@@ -47,4 +47,14 @@ public class TvShowsController : ControllerBase
 
         return Ok(show);
     }
+
+    [HttpGet("{id}/season/{seasonNumber}")]
+    public async Task<IActionResult> GetSeason(int id, int seasonNumber)
+    {
+        var season = await _tmdbService.GetTvShowSeasonAsync(id, seasonNumber);
+        if (season == null)
+            return NotFound();
+
+        return Ok(season);
+    }
 }

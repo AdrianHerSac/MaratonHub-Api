@@ -16,6 +16,7 @@ public interface ITheMovieDBService
     Task<List<TvShowDto>> GetPopularTvShowsAsync();
     Task<List<TvShowDto>> SearchTvShowsAsync(string query);
     Task<TvShowDto?> GetTvShowDetailsAsync(int id);
+    Task<SeasonDto?> GetTvShowSeasonAsync(int tvShowId, int seasonNumber);
 
     // Persons
     Task<List<PersonDto>> GetPopularPersonsAsync();

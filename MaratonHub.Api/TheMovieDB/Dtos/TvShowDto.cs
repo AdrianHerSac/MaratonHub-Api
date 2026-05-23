@@ -21,4 +21,5 @@ public class TvShowDto
     public List<CastDto> Cast { get; set; } = new();
     public string? Director { get; set; }
     public List<VideoDto> Videos { get; set; } = new();
+    public List<SeasonDto> Seasons { get; set; } = new();
 }
