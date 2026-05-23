@@ -351,7 +351,7 @@ public class TheMovieDBService : ITheMovieDBService
                     Overview = e.Overview ?? string.Empty,
                     StillPath = e.StillPath,
                     AirDate = e.AirDate,
-                    VoteAverage = e.VoteAverage ?? 0.0
+                    VoteAverage = e.VoteAverage
                 }).ToList() ?? new List<EpisodeDto>()
             };
 
@@ -553,11 +553,11 @@ public class TheMovieDBService : ITheMovieDBService
         Videos = tvShow.Videos?.Results?.Where(v => v.Site == "YouTube").Select(v => new VideoDto { Id = v.Id, Key = v.Key, Name = v.Name, Site = v.Site, Type = v.Type }).ToList() ?? new List<VideoDto>(),
         Seasons = tvShow.Seasons?.Select(s => new SeasonDto {
             Id = (int)s.Id,
-            SeasonNumber = s.SeasonNumber ?? 0,
+            SeasonNumber = s.SeasonNumber,
             Name = s.Name ?? string.Empty,
             Overview = s.Overview ?? string.Empty,
             PosterPath = s.PosterPath,
-            EpisodeCount = s.EpisodeCount ?? 0,
+            EpisodeCount = s.EpisodeCount,
             AirDate = s.AirDate
         }).OrderBy(s => s.SeasonNumber).ToList() ?? new List<SeasonDto>()
     };
