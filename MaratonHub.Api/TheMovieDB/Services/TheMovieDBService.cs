@@ -346,7 +346,7 @@ public class TheMovieDBService : ITheMovieDBService
                 Episodes = season.Episodes?.Select(e => new EpisodeDto
                 {
                     Id = (int)e.Id,
-                    EpisodeNumber = e.EpisodeNumber ?? 0,
+                    EpisodeNumber = (int)(e.EpisodeNumber),
                     Name = e.Name ?? string.Empty,
                     Overview = e.Overview ?? string.Empty,
                     StillPath = e.StillPath,
