@@ -74,6 +74,55 @@ public class ReviewRepository : IReviewRepository
         };
     }
 
+    public async Task<Dictionary<string, RatingAverageDto>> GetBatchAveragesAsync(List<MediaIdentifier> items)
+    {
+        if (items == null || !items.Any()) return new Dictionary<string, RatingAverageDto>();
+
+        var pipeline = new[]
+        {
+            new BsonDocument("$match", new BsonDocument("$or", new BsonArray(
+                items.Select(i => new BsonDocument { { "MediaId", i.MediaId }, { "MediaType", i.MediaType } })
+            ))),
+            new BsonDocument("$group", new BsonDocument
+            {
+                { "_id", new BsonDocument { { "MediaId", "$MediaId" }, { "MediaType", "$MediaType" } } },
+                { "Average", new BsonDocument("$avg", "$Rating") },
+                { "TotalReviews", new BsonDocument("$sum", 1) }
+            })
+        };
+
+        var cursor = await _reviews.AggregateAsync<BsonDocument>(pipeline);
+        var docs = await cursor.ToListAsync();
+        var result = new Dictionary<string, RatingAverageDto>();
+
+        foreach (var d in docs)
+        {
+            var idDoc = d["_id"].AsBsonDocument;
+            var mediaId = idDoc["MediaId"].AsInt32;
+            var mediaType = idDoc["MediaType"].AsString;
+            var avg = d["Average"].ToDouble();
+            
+            result[$"{mediaType}_{mediaId}"] = new RatingAverageDto
+            {
+                Average = Math.Round(avg, 1),
+                Percentage = (int)Math.Round(avg / 5.0 * 100),
+                TotalReviews = d["TotalReviews"].AsInt32
+            };
+        }
+
+        // Fill missing items with 0
+        foreach (var item in items)
+        {
+            var key = $"{item.MediaType}_{item.MediaId}";
+            if (!result.ContainsKey(key))
+            {
+                result[key] = new RatingAverageDto { Average = 0, Percentage = 0, TotalReviews = 0 };
+            }
+        }
+
+        return result;
+    }
+
     public async Task<long> FixUnknownReviewsAsync(string userId, string realUsername)
     {
         // Caso 1: Tiene el UserId correcto pero el nombre es "Unknown"

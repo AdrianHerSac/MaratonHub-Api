@@ -12,6 +12,7 @@ public interface IReviewRepository
     Task<Review?> UpdateReviewAsync(string id, Review review);
     Task<bool> DeleteReviewAsync(string id);
     Task<RatingAverageDto> GetAverageRatingAsync(int mediaId, string mediaType);
+    Task<Dictionary<string, RatingAverageDto>> GetBatchAveragesAsync(List<MediaIdentifier> items);
     Task<long> FixUnknownReviewsAsync(string userId, string realUsername);
     Task<long> CountReviewsAsync();
     Task<List<TopRatedAppMediaDto>> GetTopRatedMediaAsync(string mediaType, int page, int pageSize);

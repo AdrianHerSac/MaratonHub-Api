@@ -73,6 +73,17 @@ public class ReviewsController : ControllerBase
         return Ok(result);
     }
 
+    // <sumary> POST /api/reviews/average/batch
+    // Obtiene el promedio de las reviews para una lista de medias
+    // </sumary>
+    // <response code="200">Promedios obtenidos exitosamente</response>
+    [HttpPost("average/batch")]
+    public async Task<IActionResult> GetBatchAverageRating([FromBody] List<MediaIdentifier> items)
+    {
+        var result = await _reviewRepository.GetBatchAveragesAsync(items);
+        return Ok(result);
+    }
+
     // <sumary> GET /api/reviews/{mediaType}/{mediaId}
     // Obtiene las reviews de una media
     // </sumary>
