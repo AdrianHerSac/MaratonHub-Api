@@ -107,6 +107,17 @@ public class ITheMovieDBServiceTests
         Assert.That(parameters[0].Name, Is.EqualTo("id"));
     }
 
+    [Test]
+    public void ShouldDefineGetTvShowSeasonAsync()
+    {
+        var method = _type.GetMethod("GetTvShowSeasonAsync");
+        Assert.That(method, Is.Not.Null);
+        var parameters = method!.GetParameters();
+        Assert.That(parameters.Length, Is.EqualTo(2));
+        Assert.That(parameters[0].Name, Is.EqualTo("tvShowId"));
+        Assert.That(parameters[1].Name, Is.EqualTo("seasonNumber"));
+    }
+
     // ── Persons
 
     [Test]
@@ -150,10 +161,10 @@ public class ITheMovieDBServiceTests
     }
 
     [Test]
-    public void ShouldHaveExactly14Methods()
+    public void ShouldHaveExactly15Methods()
     {
         var methods = _type.GetMethods();
-        Assert.That(methods.Length, Is.EqualTo(14));
+        Assert.That(methods.Length, Is.EqualTo(15));
     }
 }
 

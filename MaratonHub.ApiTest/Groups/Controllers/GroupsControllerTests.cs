@@ -719,7 +719,7 @@ public class GroupsControllerTests
     {
         SetupUserClaims("user1");
         var group = MakeGroup("g1");
-        var avg = new GroupMediaAverageDto { AverageRating = 4.2, TotalRatings = 5 };
+        var avg = new MaratonHub.Api.Groups.Repositories.GroupMediaAverageDto { AverageRating = 4.2, TotalRatings = 5 };
         _mockGroupRepo.Setup(r => r.GetByIdAsync("g1")).ReturnsAsync(group);
         _mockRatingRepo.Setup(r => r.GetGroupAverageAsync("g1", 1, "Movie")).ReturnsAsync(avg);
 
@@ -734,7 +734,7 @@ public class GroupsControllerTests
         SetupUserClaims("user1");
         var group = MakeGroup("g1");
         _mockGroupRepo.Setup(r => r.GetByIdAsync("g1")).ReturnsAsync(group);
-        _mockRatingRepo.Setup(r => r.GetGroupAverageAsync("g1", 1, "Movie")).ReturnsAsync((GroupMediaAverageDto?)null);
+        _mockRatingRepo.Setup(r => r.GetGroupAverageAsync("g1", 1, "Movie")).ReturnsAsync((MaratonHub.Api.Groups.Repositories.GroupMediaAverageDto?)null);
 
         var result = await _controller.GetGroupAverageRating("g1", "Movie", 1);
 

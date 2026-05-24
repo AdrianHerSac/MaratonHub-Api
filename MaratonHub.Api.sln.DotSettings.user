@@ -10,6 +10,9 @@
     &lt;ProjectFolder&gt;684DC73D-B81A-6FE3-3D3B-7A550BF1E6DC/d:UserMedia&lt;/ProjectFolder&gt;&#xD;
     &lt;ProjectFolder&gt;684DC73D-B81A-6FE3-3D3B-7A550BF1E6DC/d:Users&lt;/ProjectFolder&gt;&#xD;
     &lt;ProjectFolder&gt;684DC73D-B81A-6FE3-3D3B-7A550BF1E6DC/d:Workers&lt;/ProjectFolder&gt;&#xD;
+    &lt;ProjectFolder&gt;684DC73D-B81A-6FE3-3D3B-7A550BF1E6DC/d:Notifications&lt;/ProjectFolder&gt;&#xD;
+    &lt;ProjectFolder&gt;684DC73D-B81A-6FE3-3D3B-7A550BF1E6DC/d:Groups&lt;/ProjectFolder&gt;&#xD;
+    &lt;ProjectFolder&gt;684DC73D-B81A-6FE3-3D3B-7A550BF1E6DC/d:Common&lt;/ProjectFolder&gt;&#xD;
   &lt;/Or&gt;&#xD;
 &lt;/SessionState&gt;</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=ac8435f6_002D84de_002D4792_002D99e0_002D0754f959e949/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="All tests from Tests.cs" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
