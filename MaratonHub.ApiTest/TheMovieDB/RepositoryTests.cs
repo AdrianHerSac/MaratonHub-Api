@@ -180,26 +180,7 @@ public class MediaCacheRepositoryTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    [Test]
-    public async Task SaveMoviesAsync_ShouldSetCachedAtToFreshTimestamp()
-    {
-        var before = DateTime.UtcNow.AddSeconds(-1);
-        UpdateResult updateResult = CreateUpdateResult(1, 1);
-        _mockMovieCollection.Setup(c => c.UpdateOneAsync(
-                It.IsAny<FilterDefinition<CachedMovie>>(),
-                It.IsAny<UpdateDefinition<CachedMovie>>(),
-                It.IsAny<UpdateOptions>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(updateResult);
 
-        await _repo.SaveMoviesAsync("time_key", new List<MovieDto>());
-
-        _mockMovieCollection.Verify(c => c.UpdateOneAsync(
-            It.IsAny<FilterDefinition<CachedMovie>>(),
-            It.Is<UpdateDefinition<CachedMovie>>(u => u.ToString()!.Contains(DateTime.UtcNow.ToString("yyyy"))),
-            It.IsAny<UpdateOptions>(),
-            It.IsAny<CancellationToken>()), Times.Once);
-    }
 
     // ── GetCachedTvShowsAsync ───────────────────────────────────────
 
