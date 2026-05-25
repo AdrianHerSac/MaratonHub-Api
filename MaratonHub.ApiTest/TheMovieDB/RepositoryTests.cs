@@ -32,6 +32,26 @@ public class MediaCacheRepositoryTests
         _repo = new MediaCacheRepository(_mockDb.Object);
     }
 
+
+    [Test]
+    public void MediaCacheRepository_ShouldImplementIMediaCacheRepository()
+    {
+        var type = typeof(MediaCacheRepository);
+        Assert.That(type.GetInterface(nameof(IMediaCacheRepository)), Is.Not.Null);
+    }
+
+    [Test]
+    public void MediaCacheRepository_ShouldHaveConstructorWithIMongoDatabase()
+    {
+        var constructors = typeof(MediaCacheRepository).GetConstructors();
+        Assert.That(constructors.Length, Is.EqualTo(1));
+
+        var constructor = constructors[0];
+        var parameters = constructor.GetParameters();
+        Assert.That(parameters.Length, Is.EqualTo(1));
+        Assert.That(parameters[0].ParameterType, Is.EqualTo(typeof(IMongoDatabase)));
+    }
+
     // ── GetCachedMoviesAsync ────────────────────────────────────────
 
     [Test]
