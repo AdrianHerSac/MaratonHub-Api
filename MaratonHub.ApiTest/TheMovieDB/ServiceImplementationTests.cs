@@ -511,4 +511,534 @@ public class TheMovieDBServiceCacheTests
 
         Assert.That(ex!.Message, Does.Contain("TMDb API Key not configured"));
     }
+
+    // ── GetTrendingMoviesAsync: TMDB error path ─────────────────────
+
+    [Test]
+    public async Task GetTrendingMoviesAsync_WhenNotCached_TMDBFails_LogsError()
+    {
+        _mockMediaCache.Setup(c => c.GetCachedMoviesAsync("trending_movies_es_extended"))
+            .ReturnsAsync((List<MovieDto>?)null);
+
+        var result = await _service.GetTrendingMoviesAsync();
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Count, Is.EqualTo(0));
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error fetching trending movies")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task GetTrendingMoviesAsync_WhenNotCached_SavesEmptyListToCache()
+    {
+        _mockMediaCache.Setup(c => c.GetCachedMoviesAsync("trending_movies_es_extended"))
+            .ReturnsAsync((List<MovieDto>?)null);
+        _mockMediaCache.Setup(c => c.SaveMoviesAsync("trending_movies_es_extended", It.IsAny<List<MovieDto>>()))
+            .Returns(Task.CompletedTask);
+
+        await _service.GetTrendingMoviesAsync();
+
+        _mockMediaCache.Verify(c => c.SaveMoviesAsync("trending_movies_es_extended", It.IsAny<List<MovieDto>>()), Times.Once);
+    }
+
+    // ── GetPopularMoviesAsync: additional paths ─────────────────────
+
+    [Test]
+    public async Task GetPopularMoviesAsync_WhenNotCached_TMDBFails_LogsError()
+    {
+        _mockMediaCache.Setup(c => c.GetCachedMoviesAsync("popular_movies_es_extended"))
+            .ReturnsAsync((List<MovieDto>?)null);
+
+        var result = await _service.GetPopularMoviesAsync();
+
+        Assert.That(result.Count, Is.EqualTo(0));
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error fetching popular movies")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task GetPopularMoviesAsync_WhenSaveFails_LogsWarning()
+    {
+        _mockMediaCache.Setup(c => c.GetCachedMoviesAsync("popular_movies_es_extended"))
+            .ReturnsAsync((List<MovieDto>?)null);
+        _mockMediaCache.Setup(c => c.SaveMoviesAsync("popular_movies_es_extended", It.IsAny<List<MovieDto>>()))
+            .ThrowsAsync(new Exception("MongoDB write failed"));
+
+        var result = await _service.GetPopularMoviesAsync();
+
+        Assert.That(result, Is.Not.Null);
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("MongoDB cache write failed")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    // ── GetTrendingTvShowsAsync: additional paths ───────────────────
+
+    [Test]
+    public async Task GetTrendingTvShowsAsync_WhenMongoDbDown_LogsWarning()
+    {
+        _mockMediaCache.Setup(c => c.GetCachedTvShowsAsync("trending_tv_es"))
+            .ThrowsAsync(new Exception("Connection refused"));
+
+        var result = await _service.GetTrendingTvShowsAsync();
+
+        Assert.That(result, Is.Not.Null);
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("MongoDB not available")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task GetTrendingTvShowsAsync_WhenSaveFails_LogsWarning()
+    {
+        _mockMediaCache.Setup(c => c.GetCachedTvShowsAsync("trending_tv_es"))
+            .ReturnsAsync((List<TvShowDto>?)null);
+        _mockMediaCache.Setup(c => c.SaveTvShowsAsync("trending_tv_es", It.IsAny<List<TvShowDto>>()))
+            .ThrowsAsync(new Exception("MongoDB write failed"));
+
+        var result = await _service.GetTrendingTvShowsAsync();
+
+        Assert.That(result, Is.Not.Null);
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("MongoDB cache write failed")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task GetTrendingTvShowsAsync_WhenNotCached_TMDBFails_LogsError()
+    {
+        _mockMediaCache.Setup(c => c.GetCachedTvShowsAsync("trending_tv_es"))
+            .ReturnsAsync((List<TvShowDto>?)null);
+
+        var result = await _service.GetTrendingTvShowsAsync();
+
+        Assert.That(result.Count, Is.EqualTo(0));
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error fetching trending TV shows")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    // ── GetPopularTvShowsAsync: additional paths ────────────────────
+
+    [Test]
+    public async Task GetPopularTvShowsAsync_WhenNotCached_SavesToCache()
+    {
+        _mockMediaCache.Setup(c => c.GetCachedTvShowsAsync("popular_tv_es"))
+            .ReturnsAsync((List<TvShowDto>?)null);
+        _mockMediaCache.Setup(c => c.SaveTvShowsAsync("popular_tv_es", It.IsAny<List<TvShowDto>>()))
+            .Returns(Task.CompletedTask);
+
+        await _service.GetPopularTvShowsAsync();
+
+        _mockMediaCache.Verify(c => c.SaveTvShowsAsync("popular_tv_es", It.IsAny<List<TvShowDto>>()), Times.Once);
+    }
+
+    [Test]
+    public async Task GetPopularTvShowsAsync_WhenSaveFails_LogsWarning()
+    {
+        _mockMediaCache.Setup(c => c.GetCachedTvShowsAsync("popular_tv_es"))
+            .ReturnsAsync((List<TvShowDto>?)null);
+        _mockMediaCache.Setup(c => c.SaveTvShowsAsync("popular_tv_es", It.IsAny<List<TvShowDto>>()))
+            .ThrowsAsync(new Exception("MongoDB write failed"));
+
+        var result = await _service.GetPopularTvShowsAsync();
+
+        Assert.That(result, Is.Not.Null);
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("MongoDB cache write failed")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task GetPopularTvShowsAsync_WhenNotCached_TMDBFails_LogsError()
+    {
+        _mockMediaCache.Setup(c => c.GetCachedTvShowsAsync("popular_tv_es"))
+            .ReturnsAsync((List<TvShowDto>?)null);
+
+        var result = await _service.GetPopularTvShowsAsync();
+
+        Assert.That(result.Count, Is.EqualTo(0));
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error fetching popular TV shows")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    // ── GetPopularPersonsAsync: additional paths ────────────────────
+
+    [Test]
+    public async Task GetPopularPersonsAsync_WhenSaveFails_LogsWarning()
+    {
+        _mockMediaCache.Setup(c => c.GetCachedPersonsAsync("popular_persons_es"))
+            .ReturnsAsync((List<PersonDto>?)null);
+        _mockMediaCache.Setup(c => c.SavePersonsAsync("popular_persons_es", It.IsAny<List<PersonDto>>()))
+            .ThrowsAsync(new Exception("MongoDB write failed"));
+
+        var result = await _service.GetPopularPersonsAsync();
+
+        Assert.That(result, Is.Not.Null);
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("MongoDB cache write failed")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task GetPopularPersonsAsync_WhenNotCached_TMDBFails_LogsError()
+    {
+        _mockMediaCache.Setup(c => c.GetCachedPersonsAsync("popular_persons_es"))
+            .ReturnsAsync((List<PersonDto>?)null);
+
+        var result = await _service.GetPopularPersonsAsync();
+
+        Assert.That(result.Count, Is.EqualTo(0));
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error fetching popular persons")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    // ── GetMoviesByGenreAsync: additional paths ─────────────────────
+
+    [Test]
+    public async Task GetMoviesByGenreAsync_WhenNotCached_SavesToCache()
+    {
+        _mockMediaCache.Setup(c => c.GetCachedMoviesAsync("genre_28_movies_es_extended"))
+            .ReturnsAsync((List<MovieDto>?)null);
+        _mockMediaCache.Setup(c => c.SaveMoviesAsync("genre_28_movies_es_extended", It.IsAny<List<MovieDto>>()))
+            .Returns(Task.CompletedTask);
+
+        await _service.GetMoviesByGenreAsync(28);
+
+        _mockMediaCache.Verify(c => c.SaveMoviesAsync("genre_28_movies_es_extended", It.IsAny<List<MovieDto>>()), Times.Once);
+    }
+
+    [Test]
+    public async Task GetMoviesByGenreAsync_WhenSaveFails_LogsWarning()
+    {
+        _mockMediaCache.Setup(c => c.GetCachedMoviesAsync("genre_28_movies_es_extended"))
+            .ReturnsAsync((List<MovieDto>?)null);
+        _mockMediaCache.Setup(c => c.SaveMoviesAsync("genre_28_movies_es_extended", It.IsAny<List<MovieDto>>()))
+            .ThrowsAsync(new Exception("MongoDB write failed"));
+
+        var result = await _service.GetMoviesByGenreAsync(28);
+
+        Assert.That(result, Is.Not.Null);
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("MongoDB cache write failed")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task GetMoviesByGenreAsync_WhenNotCached_TMDBFails_LogsError()
+    {
+        _mockMediaCache.Setup(c => c.GetCachedMoviesAsync("genre_99_movies_es_extended"))
+            .ReturnsAsync((List<MovieDto>?)null);
+
+        var result = await _service.GetMoviesByGenreAsync(99);
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Count, Is.EqualTo(0));
+    }
+
+    // ── SearchMoviesAsync: additional paths ──────────────────────────
+
+    [Test]
+    public async Task SearchMoviesAsync_WhenNotCached_TMDBFails_LogsError()
+    {
+        _mockRedisCache.Setup(r => r.GetAsync<List<MovieDto>>("movie_search_test"))
+            .ReturnsAsync((List<MovieDto>?)null);
+
+        var result = await _service.SearchMoviesAsync("Test");
+
+        Assert.That(result.Count, Is.EqualTo(0));
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error searching movies")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task SearchMoviesAsync_WhenNotCached_DoesNotSaveEmptyListToRedis()
+    {
+        _mockRedisCache.Setup(r => r.GetAsync<List<MovieDto>>("movie_search_noresults"))
+            .ReturnsAsync((List<MovieDto>?)null);
+
+        await _service.SearchMoviesAsync("NoResults");
+
+        _mockRedisCache.Verify(r => r.SetAsync(It.IsAny<string>(), It.IsAny<List<MovieDto>>(), It.IsAny<TimeSpan>()), Times.Never);
+    }
+
+    // ── SearchTvShowsAsync: additional paths ────────────────────────
+
+    [Test]
+    public async Task SearchTvShowsAsync_CacheKey_UsesLowercaseAndUnderscores()
+    {
+        _mockRedisCache.Setup(r => r.GetAsync<List<TvShowDto>>("tvsearch_breaking_bad"))
+            .ReturnsAsync((List<TvShowDto>?)null);
+
+        await _service.SearchTvShowsAsync("Breaking Bad");
+
+        _mockRedisCache.Verify(r => r.GetAsync<List<TvShowDto>>("tvsearch_breaking_bad"), Times.Once);
+    }
+
+    [Test]
+    public async Task SearchTvShowsAsync_WhenNotCached_TMDBFails_LogsError()
+    {
+        _mockRedisCache.Setup(r => r.GetAsync<List<TvShowDto>>("tvsearch_test"))
+            .ReturnsAsync((List<TvShowDto>?)null);
+
+        var result = await _service.SearchTvShowsAsync("Test");
+
+        Assert.That(result.Count, Is.EqualTo(0));
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error searching TV shows")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    // ── SearchPersonsAsync: additional paths ────────────────────────
+
+    [Test]
+    public async Task SearchPersonsAsync_CacheKey_UsesLowercaseAndUnderscores()
+    {
+        _mockRedisCache.Setup(r => r.GetAsync<List<PersonDto>>("person_search_brad_pitt"))
+            .ReturnsAsync((List<PersonDto>?)null);
+
+        await _service.SearchPersonsAsync("Brad Pitt");
+
+        _mockRedisCache.Verify(r => r.GetAsync<List<PersonDto>>("person_search_brad_pitt"), Times.Once);
+    }
+
+    [Test]
+    public async Task SearchPersonsAsync_WhenNotCached_TMDBFails_LogsError()
+    {
+        _mockRedisCache.Setup(r => r.GetAsync<List<PersonDto>>("person_search_test"))
+            .ReturnsAsync((List<PersonDto>?)null);
+
+        var result = await _service.SearchPersonsAsync("Test");
+
+        Assert.That(result.Count, Is.EqualTo(0));
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error searching persons")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    // ── GetMovieDetailsAsync: additional paths ──────────────────────
+
+    [Test]
+    public async Task GetMovieDetailsAsync_WhenNotCached_TMDBFails_LogsError()
+    {
+        _mockRedisCache.Setup(r => r.GetAsync<MovieDto>("movie_v3_888"))
+            .ReturnsAsync((MovieDto?)null);
+
+        var result = await _service.GetMovieDetailsAsync(888);
+
+        Assert.That(result, Is.Null);
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error getting movie details")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    // ── GetTvShowDetailsAsync: additional paths ─────────────────────
+
+    [Test]
+    public async Task GetTvShowDetailsAsync_WhenNotCached_TMDBFails_LogsError()
+    {
+        _mockRedisCache.Setup(r => r.GetAsync<TvShowDto>("tv_v3_888"))
+            .ReturnsAsync((TvShowDto?)null);
+
+        var result = await _service.GetTvShowDetailsAsync(888);
+
+        Assert.That(result, Is.Null);
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error getting TV show details")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task GetTvShowDetailsAsync_CacheKey_UsesTvPrefixAndVersion()
+    {
+        _mockRedisCache.Setup(r => r.GetAsync<TvShowDto>("tv_v3_550"))
+            .ReturnsAsync((TvShowDto?)null);
+
+        await _service.GetTvShowDetailsAsync(550);
+
+        _mockRedisCache.Verify(r => r.GetAsync<TvShowDto>("tv_v3_550"), Times.Once);
+    }
+
+    // ── GetTvShowSeasonAsync: additional paths ──────────────────────
+
+    [Test]
+    public async Task GetTvShowSeasonAsync_WhenNotCached_TMDBFails_LogsError()
+    {
+        _mockRedisCache.Setup(r => r.GetAsync<SeasonDto>("tv_888_season_1"))
+            .ReturnsAsync((SeasonDto?)null);
+
+        var result = await _service.GetTvShowSeasonAsync(888, 1);
+
+        Assert.That(result, Is.Null);
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error getting TV season details")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task GetTvShowSeasonAsync_CacheKey_UsesTvIdAndSeasonNumber()
+    {
+        _mockRedisCache.Setup(r => r.GetAsync<SeasonDto>("tv_100_season_3"))
+            .ReturnsAsync((SeasonDto?)null);
+
+        await _service.GetTvShowSeasonAsync(100, 3);
+
+        _mockRedisCache.Verify(r => r.GetAsync<SeasonDto>("tv_100_season_3"), Times.Once);
+    }
+
+    // ── GetPersonDetailsAsync: additional paths ─────────────────────
+
+    [Test]
+    public async Task GetPersonDetailsAsync_WhenNotCached_TMDBFails_LogsError()
+    {
+        _mockRedisCache.Setup(r => r.GetAsync<PersonDto>("person_888"))
+            .ReturnsAsync((PersonDto?)null);
+
+        var result = await _service.GetPersonDetailsAsync(888);
+
+        Assert.That(result, Is.Null);
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error getting person details")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task GetPersonDetailsAsync_CacheKey_UsesPersonPrefix()
+    {
+        _mockRedisCache.Setup(r => r.GetAsync<PersonDto>("person_42"))
+            .ReturnsAsync((PersonDto?)null);
+
+        await _service.GetPersonDetailsAsync(42);
+
+        _mockRedisCache.Verify(r => r.GetAsync<PersonDto>("person_42"), Times.Once);
+    }
+
+    // ── GetChangedMovieIdsAsync / GetChangedTvShowIdsAsync ──────────
+
+    [Test]
+    public async Task GetChangedMovieIdsAsync_TMDBFails_LogsError()
+    {
+        var result = await _service.GetChangedMovieIdsAsync();
+
+        Assert.That(result.Count, Is.EqualTo(0));
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task GetChangedTvShowIdsAsync_TMDBFails_LogsError()
+    {
+        var result = await _service.GetChangedTvShowIdsAsync();
+
+        Assert.That(result.Count, Is.EqualTo(0));
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
 }
