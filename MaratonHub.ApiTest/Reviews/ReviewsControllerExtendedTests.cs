@@ -48,14 +48,14 @@ public class ReviewsControllerExtendedTests
     [Test]
     public async Task GetTopRated_ReturnsOkWithMappedType()
     {
-        var mockReviews = new List<Review> { new Review { Id = "1" } };
+        var mockReviews = new List<TopRatedAppMediaDto> { new TopRatedAppMediaDto { MediaId = 1 } };
         _mockRepo.Setup(r => r.GetTopRatedMediaAsync("Movie", 1, 20)).ReturnsAsync(mockReviews);
 
         var result = await _controller.GetTopRated("movie");
         
         Assert.That(result, Is.InstanceOf<OkObjectResult>());
         var okResult = result as OkObjectResult;
-        var list = okResult!.Value as List<Review>;
+        var list = okResult!.Value as List<TopRatedAppMediaDto>;
         Assert.That(list!.Count, Is.EqualTo(1));
         Assert.That(list[0].MediaType, Is.EqualTo("movie"));
     }
@@ -63,17 +63,18 @@ public class ReviewsControllerExtendedTests
     [Test]
     public async Task GetAverageRating_ReturnsOk()
     {
-        _mockRepo.Setup(r => r.GetAverageRatingAsync(1, "movie")).ReturnsAsync(4.5);
+        var dto = new RatingAverageDto { Average = 4.5 };
+        _mockRepo.Setup(r => r.GetAverageRatingAsync(1, "movie")).ReturnsAsync(dto);
         var result = await _controller.GetAverageRating("movie", 1);
         var okResult = result as OkObjectResult;
-        Assert.That(okResult!.Value, Is.EqualTo(4.5));
+        Assert.That(okResult!.Value, Is.EqualTo(dto));
     }
 
     [Test]
     public async Task GetBatchAverageRating_ReturnsOk()
     {
         var items = new List<MediaIdentifier>();
-        var averages = new List<MaratonHub.Api.Groups.Dtos.GroupMediaAverageDto>();
+        var averages = new Dictionary<string, RatingAverageDto>();
         _mockRepo.Setup(r => r.GetBatchAveragesAsync(items)).ReturnsAsync(averages);
         
         var result = await _controller.GetBatchAverageRating(items);
