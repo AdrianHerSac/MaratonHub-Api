@@ -1,10 +1,25 @@
 ﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003ASearchContainer_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003FUsers_003FUsuario_003FAppData_003FRoaming_003FJetBrains_003FRider2025_002E3_003Fresharper_002Dhost_003FSourcesCache_003F7e25818afa44b5f19a291722ca094634a39bcc1a9ba8aa9a8121356e1ea61_003FSearchContainer_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=93da6c3c_002Da371_002D42f7_002D8086_002Da2e975d6bf24/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="IRedisCacheServiceTests" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;Or&gt;&#xD;
+    &lt;TestAncestor&gt;&#xD;
+      &lt;TestId&gt;NUnit3x::684DC73D-B81A-6FE3-3D3B-7A550BF1E6DC::net10.0::MaratonHub.ApiTest.Common.IRedisCacheServiceTests&lt;/TestId&gt;&#xD;
+    &lt;/TestAncestor&gt;&#xD;
+    &lt;ProjectFolder&gt;684DC73D-B81A-6FE3-3D3B-7A550BF1E6DC/d:Reviews&lt;/ProjectFolder&gt;&#xD;
+    &lt;ProjectFolder&gt;684DC73D-B81A-6FE3-3D3B-7A550BF1E6DC/d:TheMovieDB&lt;/ProjectFolder&gt;&#xD;
+    &lt;ProjectFolder&gt;684DC73D-B81A-6FE3-3D3B-7A550BF1E6DC/d:UserMedia&lt;/ProjectFolder&gt;&#xD;
+    &lt;ProjectFolder&gt;684DC73D-B81A-6FE3-3D3B-7A550BF1E6DC/d:Users&lt;/ProjectFolder&gt;&#xD;
+    &lt;ProjectFolder&gt;684DC73D-B81A-6FE3-3D3B-7A550BF1E6DC/d:Workers&lt;/ProjectFolder&gt;&#xD;
+    &lt;ProjectFolder&gt;684DC73D-B81A-6FE3-3D3B-7A550BF1E6DC/d:Notifications&lt;/ProjectFolder&gt;&#xD;
+    &lt;ProjectFolder&gt;684DC73D-B81A-6FE3-3D3B-7A550BF1E6DC/d:Groups&lt;/ProjectFolder&gt;&#xD;
+    &lt;ProjectFolder&gt;684DC73D-B81A-6FE3-3D3B-7A550BF1E6DC/d:Common&lt;/ProjectFolder&gt;&#xD;
+  &lt;/Or&gt;&#xD;
+&lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=ac8435f6_002D84de_002D4792_002D99e0_002D0754f959e949/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="All tests from Tests.cs" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;ProjectFile&gt;684DC73D-B81A-6FE3-3D3B-7A550BF1E6DC/d:Common/f:Tests.cs&lt;/ProjectFile&gt;&#xD;
+&lt;/SessionState&gt;</s:String>
 	
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=563bcdd0_002D7c3e_002D46d1_002Dad60_002D78433498643c/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="MovieDtoTests" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;Project Location="C:\MaratonHub\MaratonHub-Api\MaratonHub.ApiTest" Presentation="&amp;lt;MaratonHub.ApiTest&amp;gt;" /&gt;&#xD;
-&lt;/SessionState&gt;</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=af47cad9_002Df27d_002D464d_002Da5b9_002D9d2639d18676/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from Solution" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;Solution /&gt;&#xD;
-&lt;/SessionState&gt;</s:String>
+	
+	
+	
 	</wpf:ResourceDictionary>
