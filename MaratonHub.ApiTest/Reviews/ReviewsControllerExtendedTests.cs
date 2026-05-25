@@ -13,7 +13,7 @@ using MaratonHub.Api.Groups.Dtos;
 
 namespace MaratonHub.ApiTest.Reviews;
 
-public class ReviewsControllerTests
+public class ReviewsControllerExtendedTests
 {
     private Mock<IReviewRepository> _mockRepo = null!;
     private ReviewsController _controller = null!;
