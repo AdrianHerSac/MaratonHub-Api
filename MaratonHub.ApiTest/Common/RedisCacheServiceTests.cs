@@ -1,4 +1,7 @@
 using MaratonHub.Api.Common;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace MaratonHub.ApiTest.Common;
 
@@ -95,6 +98,16 @@ public class IRedisCacheServiceTests
 
 public class RedisCacheServiceTests
 {
+    private Mock<IConfiguration> _mockConfig = null!;
+    private Mock<ILogger<RedisCacheService>> _mockLogger = null!;
+
+    [SetUp]
+    public void SetUp()
+    {
+        _mockConfig = new Mock<IConfiguration>();
+        _mockLogger = new Mock<ILogger<RedisCacheService>>();
+    }
+
     [Test]
     public void RedisCacheService_ShouldImplementIRedisCacheService()
     {
@@ -102,13 +115,49 @@ public class RedisCacheServiceTests
     }
 
     [Test]
-    public void RedisCacheService_ShouldHaveConstructorWithConfigurationAndLogger()
+    public void Constructor_WhenConnectionFails_LogsWarningAndLeavesDatabaseNull()
     {
-        var ctors = typeof(RedisCacheService).GetConstructors();
-        Assert.That(ctors.Length, Is.EqualTo(1));
-        var p = ctors[0].GetParameters();
-        Assert.That(p.Length, Is.EqualTo(2));
-        Assert.That(p[0].ParameterType.Name, Does.Contain("IConfiguration"));
-        Assert.That(p[1].ParameterType.Name, Does.Contain("ILogger"));
+        // Use an invalid hostname/port and 1ms timeout to force an immediate exception
+        _mockConfig.Setup(c => c["RedisSettings:ConnectionString"]).Returns("255.255.255.255:9999,connectTimeout=1");
+
+        var service = new RedisCacheService(_mockConfig.Object, _mockLogger.Object);
+
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Redis connection failed")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task GetAsync_WhenDatabaseIsNull_ReturnsNull()
+    {
+        _mockConfig.Setup(c => c["RedisSettings:ConnectionString"]).Returns("255.255.255.255:9999,connectTimeout=1");
+        var service = new RedisCacheService(_mockConfig.Object, _mockLogger.Object);
+
+        var result = await service.GetAsync<object>("any_key");
+
+        Assert.That(result, Is.Null);
+    }
+
+    [Test]
+    public async Task SetAsync_WhenDatabaseIsNull_DoesNotThrow()
+    {
+        _mockConfig.Setup(c => c["RedisSettings:ConnectionString"]).Returns("255.255.255.255:9999,connectTimeout=1");
+        var service = new RedisCacheService(_mockConfig.Object, _mockLogger.Object);
+
+        Assert.DoesNotThrowAsync(async () => await service.SetAsync("any_key", new { Name = "test" }));
+    }
+
+    [Test]
+    public async Task RemoveAsync_WhenDatabaseIsNull_DoesNotThrow()
+    {
+        _mockConfig.Setup(c => c["RedisSettings:ConnectionString"]).Returns("255.255.255.255:9999,connectTimeout=1");
+        var service = new RedisCacheService(_mockConfig.Object, _mockLogger.Object);
+
+        Assert.DoesNotThrowAsync(async () => await service.RemoveAsync("any_key"));
     }
 }
