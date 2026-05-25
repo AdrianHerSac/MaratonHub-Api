@@ -53,13 +53,20 @@ public class TheMovieDBService : ITheMovieDBService
         }
 
         var result = new List<MovieDto>();
-        for (int i = 1; i <= 3; i++)
+        try
         {
-            var trendingPage = await _tmdbClient.GetTrendingMoviesAsync(TimeWindow.Day, page: i, language: "es-ES");
-            if (trendingPage?.Results != null)
+            for (int i = 1; i <= 3; i++)
             {
-                result.AddRange(trendingPage.Results.Select(MapSearchMovieToDto));
+                var trendingPage = await _tmdbClient.GetTrendingMoviesAsync(TimeWindow.Day, page: i, language: "es-ES");
+                if (trendingPage?.Results != null)
+                {
+                    result.AddRange(trendingPage.Results.Select(MapSearchMovieToDto));
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching trending movies from TMDB");
         }
 
         try { await _mediaCache.SaveMoviesAsync(key, result); }
@@ -89,13 +96,20 @@ public class TheMovieDBService : ITheMovieDBService
         }
 
         var result = new List<MovieDto>();
-        for (int i = 1; i <= 3; i++)
+        try
         {
-            var popularPage = await _tmdbClient.GetMoviePopularListAsync(language: "es-ES", page: i);
-            if (popularPage?.Results != null)
+            for (int i = 1; i <= 3; i++)
             {
-                result.AddRange(popularPage.Results.Select(MapSearchMovieToDto));
+                var popularPage = await _tmdbClient.GetMoviePopularListAsync(language: "es-ES", page: i);
+                if (popularPage?.Results != null)
+                {
+                    result.AddRange(popularPage.Results.Select(MapSearchMovieToDto));
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching popular movies from TMDB");
         }
 
         try { await _mediaCache.SaveMoviesAsync(key, result); }
@@ -117,8 +131,16 @@ public class TheMovieDBService : ITheMovieDBService
         var cached = await _redisCache.GetAsync<List<MovieDto>>(cacheKey);
         if (cached != null) return cached;
 
-        var results = await _tmdbClient.SearchMovieAsync(query, language: "es-ES");
-        var movies = results?.Results?.Select(MapSearchMovieToDto).ToList() ?? new List<MovieDto>();
+        var movies = new List<MovieDto>();
+        try
+        {
+            var results = await _tmdbClient.SearchMovieAsync(query, language: "es-ES");
+            movies = results?.Results?.Select(MapSearchMovieToDto).ToList() ?? new List<MovieDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching movies from TMDB");
+        }
 
         if (movies.Count > 0)
         {
@@ -224,11 +246,18 @@ public class TheMovieDBService : ITheMovieDBService
         }
 
         var result = new List<TvShowDto>();
-        for (int i = 1; i <= 3; i++)
+        try
         {
-            var trendingPage = await _tmdbClient.GetTrendingTvAsync(TimeWindow.Day, page: i, language: "es-ES");
-            if (trendingPage?.Results != null)
-                result.AddRange(trendingPage.Results.Select(MapSearchTvToDto));
+            for (int i = 1; i <= 3; i++)
+            {
+                var trendingPage = await _tmdbClient.GetTrendingTvAsync(TimeWindow.Day, page: i, language: "es-ES");
+                if (trendingPage?.Results != null)
+                    result.AddRange(trendingPage.Results.Select(MapSearchTvToDto));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching trending TV shows from TMDB");
         }
 
         try { await _mediaCache.SaveTvShowsAsync(key, result); }
@@ -255,11 +284,18 @@ public class TheMovieDBService : ITheMovieDBService
         }
 
         var result = new List<TvShowDto>();
-        for (int i = 1; i <= 3; i++)
+        try
         {
-            var popularPage = await _tmdbClient.GetTvShowPopularAsync(language: "es-ES", page: i);
-            if (popularPage?.Results != null)
-                result.AddRange(popularPage.Results.Select(MapSearchTvToDto));
+            for (int i = 1; i <= 3; i++)
+            {
+                var popularPage = await _tmdbClient.GetTvShowPopularAsync(language: "es-ES", page: i);
+                if (popularPage?.Results != null)
+                    result.AddRange(popularPage.Results.Select(MapSearchTvToDto));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching popular TV shows from TMDB");
         }
 
         try { await _mediaCache.SaveTvShowsAsync(key, result); }
@@ -280,8 +316,16 @@ public class TheMovieDBService : ITheMovieDBService
         var cached = await _redisCache.GetAsync<List<TvShowDto>>(cacheKey);
         if (cached != null) return cached;
 
-        var results = await _tmdbClient.SearchTvShowAsync(query, language: "es-ES");
-        var tvShows = results?.Results?.Select(MapSearchTvToDto).ToList() ?? new List<TvShowDto>();
+        var tvShows = new List<TvShowDto>();
+        try
+        {
+            var results = await _tmdbClient.SearchTvShowAsync(query, language: "es-ES");
+            tvShows = results?.Results?.Select(MapSearchTvToDto).ToList() ?? new List<TvShowDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching TV shows from TMDB");
+        }
 
         if (tvShows.Count > 0)
         {
@@ -384,8 +428,16 @@ public class TheMovieDBService : ITheMovieDBService
             _logger.LogWarning("MongoDB not available (cache read failed): {Msg}. Calling TMDB directly.", ex.Message);
         }
 
-        var popular = await _tmdbClient.GetPersonPopularListAsync(language: "es-ES");
-        var result = popular?.Results?.Select(MapSearchPersonToDto).ToList() ?? new List<PersonDto>();
+        var result = new List<PersonDto>();
+        try
+        {
+            var popular = await _tmdbClient.GetPersonPopularListAsync(language: "es-ES");
+            result = popular?.Results?.Select(MapSearchPersonToDto).ToList() ?? new List<PersonDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching popular persons from TMDB");
+        }
 
         try { await _mediaCache.SavePersonsAsync(key, result); }
         catch (Exception ex) { _logger.LogWarning("MongoDB cache write failed: {Msg}", ex.Message); }
@@ -405,8 +457,16 @@ public class TheMovieDBService : ITheMovieDBService
         var cached = await _redisCache.GetAsync<List<PersonDto>>(cacheKey);
         if (cached != null) return cached;
 
-        var results = await _tmdbClient.SearchPersonAsync(query, language: "es-ES");
-        var persons = results?.Results?.Select(MapSearchPersonToDto).ToList() ?? new List<PersonDto>();
+        var persons = new List<PersonDto>();
+        try
+        {
+            var results = await _tmdbClient.SearchPersonAsync(query, language: "es-ES");
+            persons = results?.Results?.Select(MapSearchPersonToDto).ToList() ?? new List<PersonDto>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching persons from TMDB");
+        }
 
         if (persons.Count > 0)
         {
