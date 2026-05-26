@@ -2,6 +2,7 @@
   <dictionary name="project">
     <words>
       <w>Tmdb</w>
+      <w>tmdb</w>
     </words>
   </dictionary>
 </component>

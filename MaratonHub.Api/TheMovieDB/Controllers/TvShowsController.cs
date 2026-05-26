@@ -57,4 +57,9 @@ public class TvShowsController : ControllerBase
 
         return Ok(season);
     }
+
+    [HttpGet("genero/{genreId}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetByGenre(int genreId)
+        => Ok(await _tmdbService.GetTvShowsByGenreAsync(genreId));
 }

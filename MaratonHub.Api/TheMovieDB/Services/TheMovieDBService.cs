@@ -305,6 +305,49 @@ public class TheMovieDBService : ITheMovieDBService
     }
 
     /// <summary>
+    /// Obtiene las series TV pertenecientes a un género específico.
+    /// </summary>
+    public async Task<List<TvShowDto>> GetTvShowsByGenreAsync(int genreId)
+    {
+        var key = $"genre_{genreId}_tvshows_es";
+
+        try
+        {
+            var cached = await _mediaCache.GetCachedTvShowsAsync(key);
+            if (cached != null) return cached;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("MongoDB cache read failed: {Msg}", ex.Message);
+        }
+
+        var result = new List<TvShowDto>();
+        for (int i = 1; i <= 3; i++)
+        {
+            try 
+            {
+                var page = await _tmdbClient.DiscoverTvShowsAsync()
+                    .WhereGenresInclude([genreId])
+                    .Query(page: i, language: "es-ES");
+
+                if (page?.Results != null)
+                {
+                    result.AddRange(page.Results.Select(MapSearchTvToDto));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error fetching TV genre page {Page}: {Error}", i, ex.Message);
+            }
+        }
+
+        try { await _mediaCache.SaveTvShowsAsync(key, result); }
+        catch (Exception ex) { _logger.LogWarning("MongoDB cache write failed: {Msg}", ex.Message); }
+
+        return result;
+    }
+
+    /// <summary>
     /// Busca series TV por título.
     /// </summary>
     /// <param name="query">Término de búsqueda.</param>
