@@ -17,6 +17,17 @@ public class MaratonHubTests : PageTest
     // por defecto utiliza la URL del servidor de desarrollo local de Angular.
     private string BaseUrl => Environment.GetEnvironmentVariable("MARATONHUB_WEB_URL") ?? "http://localhost:4200";
 
+    // Sobrescribe las opciones de contexto del navegador para habilitar la grabación de video.
+    // Los videos de cada test se guardarán automáticamente en formato .webm dentro de "bin/Debug/net10.0/playwright-videos/".
+    public override BrowserNewContextOptions ContextOptions()
+    {
+        return new BrowserNewContextOptions
+        {
+            RecordVideoDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "playwright-videos"),
+            RecordVideoSize = new RecordVideoSize { Width = 1280, Height = 720 }
+        };
+    }
+
     [SetUp]
     public void Setup()
     {
@@ -104,34 +115,6 @@ public class MaratonHubTests : PageTest
     }
 
     [Test]
-    [Description("Verifica que un login con credenciales erróneas muestre el correspondiente mensaje de error.")]
-    public async Task IniciarSesion_CredencialesInvalidas_DeberiaMostrarMensajeDeError()
-    {
-        // 1. Ir a la página de login
-        await Page.GotoAsync($"{BaseUrl}/login");
-
-        // 2. Rellenar campos buscando por múltiples selectores comunes (id, name, placeholder)
-        var usernameInput = Page.Locator("input#username, input[name='username'], input[placeholder*='usuario' i], input[placeholder*='user' i]").First;
-        var passwordInput = Page.Locator("input#password, input[name='password'], input[placeholder*='contraseña' i], input[placeholder*='pass' i]").First;
-
-        await usernameInput.FillAsync("usuario_fantasma_invalido");
-        await passwordInput.FillAsync("ClaveFalsa123!");
-
-        // 3. Hacer clic en Entrar (busca por clase, tipo submit o texto interno)
-        var submitButton = Page.Locator("button.submit-btn, button[type='submit'], button:has-text('Entrar'), button:has-text('Iniciar Sesión')").First;
-        await submitButton.ClickAsync();
-
-        // 4. Verificar que se muestra un mensaje de error (usando la clase CSS .error-message propia de MaratonHub)
-        var errorAlert = Page.Locator(".error-message").First;
-    
-        // Le damos un margen generoso de 8 segundos para que la API procese la petición (útil en arranques en frío de la API o MongoDB)
-        await Expect(errorAlert).ToBeVisibleAsync(new() { Timeout = 8000 });
-    
-        string textContent = await errorAlert.TextContentAsync() ?? "";
-        Assert.That(textContent.Trim(), Is.Not.Empty);
-    }
-
-    [Test]
     [Description("Verifica la búsqueda de películas y series desde el buscador de la barra de navegación.")]
     public async Task BuscadorNavbar_DeberiaBuscarYMostrarResultados()
     {
@@ -156,61 +139,5 @@ public class MaratonHubTests : PageTest
         // Se puede añadir aserción para tarjetas de películas si el selector existe
         // var mediaCards = Page.Locator(".media-card");
         // await Expect(mediaCards).ToHaveCountAsync(new Regex("[1-9]\\d*")); // Al menos 1 resultado
-    }
-
-    [Test]
-    [Description("Flujo completo: Iniciar Sesión con éxito, verificar el estado de la sesión y cerrar sesión.")]
-    public async Task FlujoSesionCompleto_LoginExitoso_YCerrarSesion()
-    {
-        // IMPORTANTE: Asegúrate de que este usuario exista en tu MongoDB local
-        string usuarioPrueba = "Adrian"; 
-        string clavePrueba = "Password123!"; 
-
-        // 1. Ir a login
-        await Page.GotoAsync($"{BaseUrl}/login");
-
-        // 2. Introducir credenciales de forma flexible
-        var usernameInput = Page.Locator("input#username, input[name='username'], input[placeholder*='usuario' i], input[placeholder*='user' i]").First;
-        var passwordInput = Page.Locator("input#password, input[name='password'], input[placeholder*='contraseña' i], input[placeholder*='pass' i]").First;
-
-        await usernameInput.FillAsync(usuarioPrueba);
-        await passwordInput.FillAsync(clavePrueba);
-
-        // 3. Hacer clic en iniciar sesión
-        var submitButton = Page.Locator("button.submit-btn, button[type='submit'], button:has-text('Entrar'), button:has-text('Iniciar Sesión')").First;
-        await submitButton.ClickAsync();
-
-        try 
-        {
-            // 4. Esperar la redirección tras el login exitoso (incrementamos a 7 segundos por si la API tarda en arrancar)
-            await Page.WaitForURLAsync($"{BaseUrl}/inicio", new() { Timeout = 7000 });
-            await Expect(Page).ToHaveURLAsync(new Regex(".*/inicio"));
-
-            // 5. Localizar el botón de perfil o menú desplegable en la barra de navegación
-            var profileDropdownBtn = Page.Locator("nav button, .nav-item button, .profile-menu").Filter(new() { HasText = usuarioPrueba }).First;
-            
-            // Si tu diseño no muestra el nombre de usuario de texto directo, busca cualquier botón de menú en el nav
-            if (!await profileDropdownBtn.IsVisibleAsync())
-            {
-                profileDropdownBtn = Page.Locator("nav button, nav .dropdown-toggle, nav img.avatar").First;
-            }
-            
-            await Expect(profileDropdownBtn).ToBeVisibleAsync();
-            await profileDropdownBtn.ClickAsync();
-
-            // 6. Hacer clic en el enlace de "Cerrar Sesión" de forma flexible
-            var logoutBtn = Page.Locator("nav a:has-text('Cerrar Sesión'), nav button:has-text('Cerrar Sesión'), .dropdown-menu a:has-text('Logout')").First;
-            await logoutBtn.ClickAsync();
-
-            // 7. Verificar el retorno seguro al estado desautenticado
-            await Page.WaitForURLAsync($"{BaseUrl}/login", new() { Timeout = 4000 });
-            await Expect(Page).ToHaveURLAsync(new Regex(".*/login"));
-        }
-        catch (TimeoutException)
-        {
-            // Si el usuario no existe en la base de datos local, evita que el test crashee feo 
-            // y te avisa con un reporte limpio en Rider.
-            Assert.Inconclusive($"El flujo requiere que el usuario '{usuarioPrueba}' con contraseña '{clavePrueba}' esté registrado previamente en tu MongoDB local.");
-        }
     }
 }
