@@ -4,6 +4,7 @@
   &lt;Or&gt;&#xD;
     &lt;TestAncestor&gt;&#xD;
       &lt;TestId&gt;NUnit3x::684DC73D-B81A-6FE3-3D3B-7A550BF1E6DC::net10.0::MaratonHub.ApiTest.Common.IRedisCacheServiceTests&lt;/TestId&gt;&#xD;
+      &lt;TestId&gt;NUnit3x::40A172D2-B997-96D7-1629-3C35643DE6DD::net10.0::MaratonHub.ApiPlayWrite.MaratonHubTests&lt;/TestId&gt;&#xD;
     &lt;/TestAncestor&gt;&#xD;
     &lt;ProjectFolder&gt;684DC73D-B81A-6FE3-3D3B-7A550BF1E6DC/d:Reviews&lt;/ProjectFolder&gt;&#xD;
     &lt;ProjectFolder&gt;684DC73D-B81A-6FE3-3D3B-7A550BF1E6DC/d:TheMovieDB&lt;/ProjectFolder&gt;&#xD;
