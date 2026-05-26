@@ -3,5 +3,6 @@
     <File Path="compose.yaml" />
   </Folder>
   <Project Path="MaratonHub.Api/MaratonHub.Api.csproj" />
+  <Project Path="MaratonHub.ApiPlayWrite/MaratonHub.ApiPlayWrite.csproj" />
   <Project Path="MaratonHub.ApiTest/MaratonHub.ApiTest.csproj" />
 </Solution>
