@@ -55,7 +55,8 @@ public class ReviewsControllerBatchTests
     public void SetUp()
     {
         _mockRepo = new Mock<IReviewRepository>();
-        _controller = new ReviewsController(_mockRepo.Object);
+        var mockHubContext = new Mock<Microsoft.AspNetCore.SignalR.IHubContext<MaratonHub.Api.Groups.Hubs.ChatHub>>();
+        _controller = new ReviewsController(_mockRepo.Object, mockHubContext.Object);
         _controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()

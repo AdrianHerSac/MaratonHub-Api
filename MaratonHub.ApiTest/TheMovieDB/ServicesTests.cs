@@ -88,6 +88,18 @@ public class ITheMovieDBServiceTests
     }
 
     [Test]
+    public void ShouldDefineGetTvShowsByGenreAsync()
+    {
+        var method = _type.GetMethod("GetTvShowsByGenreAsync");
+        Assert.That(method, Is.Not.Null);
+        var parameters = method!.GetParameters();
+        Assert.That(parameters.Length, Is.EqualTo(1));
+        Assert.That(parameters[0].Name, Is.EqualTo("genreId"));
+        Assert.That(parameters[0].ParameterType, Is.EqualTo(typeof(int)));
+        Assert.That(method.ReturnType, Is.EqualTo(typeof(Task<List<TvShowDto>>)));
+    }
+
+    [Test]
     public void ShouldDefineSearchTvShowsAsync()
     {
         var method = _type.GetMethod("SearchTvShowsAsync");
@@ -161,10 +173,10 @@ public class ITheMovieDBServiceTests
     }
 
     [Test]
-    public void ShouldHaveExactly15Methods()
+    public void ShouldHaveExactly16Methods()
     {
         var methods = _type.GetMethods();
-        Assert.That(methods.Length, Is.EqualTo(15));
+        Assert.That(methods.Length, Is.EqualTo(16));
     }
 }
 

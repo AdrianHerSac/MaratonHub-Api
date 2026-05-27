@@ -207,7 +207,14 @@ public class ReviewsControllerTests
     public void SetUp()
     {
         _mockRepo = new Mock<IReviewRepository>();
-        _controller = new ReviewsController(_mockRepo.Object);
+
+        var mockHubContext = new Mock<Microsoft.AspNetCore.SignalR.IHubContext<MaratonHub.Api.Groups.Hubs.ChatHub>>();
+        var mockClients = new Mock<Microsoft.AspNetCore.SignalR.IHubClients>();
+        var mockClientProxy = new Mock<Microsoft.AspNetCore.SignalR.IClientProxy>();
+        mockHubContext.Setup(h => h.Clients).Returns(mockClients.Object);
+        mockClients.Setup(c => c.Group(It.IsAny<string>())).Returns(mockClientProxy.Object);
+
+        _controller = new ReviewsController(_mockRepo.Object, mockHubContext.Object);
     }
 
     [Test]
@@ -523,6 +530,8 @@ public class ReviewsControllerTests
     public async Task DeleteReview_WhenExists_ShouldReturnNoContent()
     {
         SetupUserClaims("user123", "TestUser");
+        var existing = new Review { Id = "r1", MediaId = 1, MediaType = "Movie" };
+        _mockRepo.Setup(r => r.GetReviewByIdAsync("r1")).ReturnsAsync(existing);
         _mockRepo.Setup(r => r.DeleteReviewAsync("r1")).ReturnsAsync(true);
 
         var result = await _controller.DeleteReview("r1");
