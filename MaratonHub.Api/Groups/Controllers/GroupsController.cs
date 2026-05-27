@@ -395,6 +395,31 @@ public class GroupsController : ControllerBase
         });
     }
 
+    [HttpDelete("{id}/ratings/{ratingId}")]
+    public async Task<IActionResult> DeleteGroupRating(string id, string ratingId)
+    {
+        var group = await _groupRepository.GetByIdAsync(id);
+        if (group == null) return NotFound("Grupo no encontrado.");
+
+        var rating = await _groupRatingRepository.GetByIdAsync(ratingId);
+        if (rating == null) return NotFound("Valoración no encontrada.");
+
+        var userId = GetUserId();
+        var member = group.Members.FirstOrDefault(m => m.UserId == userId);
+
+        var isSiteAdmin = User.IsInRole("Admin") || GetUserName().Equals("Adrian", StringComparison.OrdinalIgnoreCase);
+        var isGroupAdmin = member != null && member.Role == "Admin";
+        var isCreator = rating.UserId == userId;
+
+        if (!isSiteAdmin && !isGroupAdmin && !isCreator)
+            return Forbid();
+
+        var deleted = await _groupRatingRepository.DeleteAsync(ratingId);
+        if (!deleted) return BadRequest("No se pudo eliminar la valoración.");
+
+        return NoContent();
+    }
+
     [HttpGet("{id}/ratings/average/{mediaType}/{mediaId}")]
     public async Task<IActionResult> GetGroupAverageRating(string id, string mediaType, int mediaId)
     {

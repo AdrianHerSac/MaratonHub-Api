@@ -5,6 +5,8 @@ using MaratonHub.Api.Reviews.Reposytory;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using MaratonHub.Api.Groups.Hubs;
+using Microsoft.AspNetCore.SignalR;
 
 namespace MaratonHub.Api.Reviews.Controllers;
 
@@ -20,10 +22,12 @@ namespace MaratonHub.Api.Reviews.Controllers;
 public class ReviewsController : ControllerBase
 {
     private readonly IReviewRepository _reviewRepository;
+    private readonly IHubContext<ChatHub> _hubContext;
 
-    public ReviewsController(IReviewRepository reviewRepository)
+    public ReviewsController(IReviewRepository reviewRepository, IHubContext<ChatHub> hubContext)
     {
         _reviewRepository = reviewRepository;
+        _hubContext = hubContext;
     }
 
     // ENDPOINT TEMPORAL DE DEBUG - ver los claims que llegan en el JWT
@@ -179,6 +183,15 @@ public class ReviewsController : ControllerBase
             CreatedAt = created.CreatedAt
         };
 
+        string groupName = $"media_{created.MediaType}_{created.MediaId}";
+        await _hubContext.Clients.Group(groupName).SendAsync("MediaReviewUpdated", new
+        {
+            action = "create",
+            mediaId = created.MediaId,
+            mediaType = created.MediaType,
+            review = reviewDto
+        });
+
         return CreatedAtAction(nameof(GetReviewsByMedia), new { mediaType = created.MediaType, mediaId = created.MediaId }, reviewDto);
     }
 
@@ -207,6 +220,25 @@ public class ReviewsController : ControllerBase
         if (updated == null)
             return NotFound();
 
+        string groupName = $"media_{updated.MediaType}_{updated.MediaId}";
+        await _hubContext.Clients.Group(groupName).SendAsync("MediaReviewUpdated", new
+        {
+            action = "update",
+            mediaId = updated.MediaId,
+            mediaType = updated.MediaType,
+            review = new ReviewDto
+            {
+                Id = updated.Id,
+                UserId = updated.UserId,
+                MediaId = updated.MediaId,
+                MediaType = updated.MediaType,
+                UserName = updated.UserName,
+                Rating = updated.Rating,
+                Comment = updated.Comment,
+                CreatedAt = updated.CreatedAt
+            }
+        });
+
         return NoContent();
     }
 
@@ -220,9 +252,22 @@ public class ReviewsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> DeleteReview(string id)
     {
+        var existing = await _reviewRepository.GetReviewByIdAsync(id);
+        if (existing == null)
+            return NotFound();
+
         var deleted = await _reviewRepository.DeleteReviewAsync(id);
         if (!deleted)
             return NotFound();
+
+        string groupName = $"media_{existing.MediaType}_{existing.MediaId}";
+        await _hubContext.Clients.Group(groupName).SendAsync("MediaReviewUpdated", new
+        {
+            action = "delete",
+            mediaId = existing.MediaId,
+            mediaType = existing.MediaType,
+            reviewId = id
+        });
 
         return NoContent();
     }
